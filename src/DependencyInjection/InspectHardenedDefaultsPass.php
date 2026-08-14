@@ -71,19 +71,22 @@ final readonly class InspectHardenedDefaultsPass implements CompilerPassInterfac
                 .'(`framework.session.cookie_samesite`) : c\'est ce dont vit la falsification de requête.';
         }
 
+        // Un cookie ne connaît pas le port : deux applications servies par la même adresse se
+        // partagent le pot, et celle qui écrit en dernier a raison.
+        if ('PHPSESSID' === ($options['name'] ?? \ini_get('session.name'))) {
+            $findings[] = 'Le cookie de session porte le nom par défaut (`framework.session.name`) : '
+                .'toute autre application servie par la même adresse écrase la session de celle-ci, '
+                .'quel que soit le port.';
+        }
+
         return $findings;
     }
 
     /**
-     * La durée que le stockage des sessions accorde réellement.
+     * La durée que le stockage des sessions accorde, comparée à celle que la politique annonce.
      *
-     * `session.gc_maxlifetime` vaut 1440 secondes par défaut chez PHP — vingt-quatre minutes.
-     * Un gestionnaire qui range les sessions ailleurs que dans des fichiers s'en sert pour
-     * purger, et une session disparaît donc bien avant l'inactivité que la politique annonce.
-     *
-     * C'est le pire cas que ce paquet puisse produire : une politique qui affiche huit heures
-     * à quelqu'un dont la session tombe au bout de vingt minutes. Le réglage n'appartient pas
-     * au paquet, il ne peut donc que le dire.
+     * `session.gc_maxlifetime` vaut 1440 secondes par défaut, et un gestionnaire qui range les
+     * sessions ailleurs que dans des fichiers s'en sert pour les purger.
      *
      * @return list<string>
      */

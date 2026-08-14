@@ -16,7 +16,7 @@ final class InspectHardenedDefaultsPassTest extends TestCase
     {
         $findings = $this->findingsFor(
             ['idle_timeout' => ['ceiling' => 28800]],
-            ['gc_maxlifetime' => 1440],
+            ['name' => 'infra_session', 'gc_maxlifetime' => 1440],
         );
 
         self::assertCount(1, $findings);
@@ -28,20 +28,37 @@ final class InspectHardenedDefaultsPassTest extends TestCase
     {
         self::assertSame([], $this->findingsFor(
             ['idle_timeout' => ['ceiling' => 1440]],
-            ['gc_maxlifetime' => 28800],
+            ['name' => 'infra_session', 'gc_maxlifetime' => 28800],
         ));
     }
 
     public function testSansInactiviteAnnonceeIlNYAUneRienAComparer(): void
     {
-        self::assertSame([], $this->findingsFor([], ['gc_maxlifetime' => 1440]));
+        self::assertSame([], $this->findingsFor([], ['name' => 'infra_session', 'gc_maxlifetime' => 1440]));
     }
 
     public function testUnCookieRelacheEstSignale(): void
     {
-        $findings = $this->findingsFor([], ['cookie_secure' => false, 'cookie_samesite' => null]);
+        $findings = $this->findingsFor([], [
+            'name' => 'infra_session',
+            'cookie_secure' => false,
+            'cookie_samesite' => null,
+        ]);
 
         self::assertCount(2, $findings);
+    }
+
+    public function testUnCookieAuNomParDefautEstSignale(): void
+    {
+        $findings = $this->findingsFor([], ['name' => 'PHPSESSID']);
+
+        self::assertCount(1, $findings);
+        self::assertStringContainsString('même adresse', $findings[0]);
+    }
+
+    public function testUnCookieNommeNeDitRien(): void
+    {
+        self::assertSame([], $this->findingsFor([], ['name' => 'infra_session']));
     }
 
     /**
