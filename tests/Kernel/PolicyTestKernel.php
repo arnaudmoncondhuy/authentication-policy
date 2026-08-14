@@ -7,10 +7,12 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Kernel;
 use ArnaudMoncondhuy\AuthenticationPolicy\AuthenticationPolicyBundle;
 use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryRolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\EnrollmentController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\GuardedController;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -93,6 +95,9 @@ final class PolicyTestKernel extends Kernel
             'firewalls' => ['main' => [
                 'pattern' => '^/',
                 'provider' => 'memoire',
+                // Comme toute application réelle : le pare-feu ne charge le jeton que si
+                // quelqu'un le lit.
+                'lazy' => true,
                 'http_basic' => true,
                 'login_throttling' => ['max_attempts' => 5],
             ]],
@@ -100,6 +105,10 @@ final class PolicyTestKernel extends Kernel
         ]);
 
         $container->loadFromExtension('authentication_policy', $this->policy);
+
+        // L'heure que le test avance à la main, publique pour qu'il l'atteigne.
+        $container->register(FrozenClock::class)->setPublic(true);
+        $container->setAlias(ClockInterface::class, FrozenClock::class)->setPublic(true);
 
         $container->register(GuardedController::class)
             ->setPublic(true)

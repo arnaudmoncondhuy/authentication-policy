@@ -78,13 +78,19 @@ final readonly class SessionLifetimeListener
     /**
      * À chaque requête : deux soustractions.
      *
-     * Se place après le pare-feu, qui est ce qui démarre la session et pose le jeton. Une
-     * session non démarrée n'est pas lue : la lire la démarrerait, et poserait un cookie à tous
-     * les visiteurs qui n'en ont pas.
+     * **Le jeton se lit en premier, et cet ordre est le dispositif.** Un pare-feu paresseux —
+     * `lazy: true`, celui de toutes les applications réelles — ne charge rien tant que personne
+     * ne réclame le jeton : la session n'est alors pas démarrée, et un contrôle qui commencerait
+     * par elle ne trouverait jamais rien à faire tomber. Il ne casserait pas ; il ne servirait à
+     * rien, en silence.
+     *
+     * Le lire ne pose de cookie à personne : sans session précédente, le pare-feu n'ouvre rien
+     * et rend un jeton nul. Un visiteur qui n'est pas connecté repart d'ici sans avoir été
+     * touché.
      */
     public function onRequest(RequestEvent $event): void
     {
-        if (!$event->isMainRequest()) {
+        if (!$event->isMainRequest() || null === $this->tokens->getToken()) {
             return;
         }
 
