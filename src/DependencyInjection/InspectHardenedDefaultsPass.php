@@ -76,7 +76,7 @@ final readonly class InspectHardenedDefaultsPass implements CompilerPassInterfac
         if ('PHPSESSID' === ($options['name'] ?? \ini_get('session.name'))) {
             $findings[] = 'Le cookie de session porte le nom par défaut (`framework.session.name`) : '
                 .'toute autre application servie par la même adresse écrase la session de celle-ci, '
-                .'quel que soit le port.';
+                .'quel que soit le port — et le nom annonce à lui seul par quoi le site est servi.';
         }
 
         return $findings;
