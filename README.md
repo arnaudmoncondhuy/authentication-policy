@@ -176,3 +176,20 @@ d'administration vous appartiennent. La liste tenue à jour est dans
 ## Compatibilité
 
 PHP 8.4+, Symfony 7.3+ et 8.x. Aucune dépendance hors Symfony et PSR-20.
+
+## Version
+
+**0.x — le paquet marche, il n'est pas éprouvé.** La distinction n'est pas de la modestie : il
+n'a encore tourné qu'en essai, jamais avec de vrais comptes ni un mécanisme de second facteur
+réellement branché derrière. Ce qui est écrit ici est tenu par des tests ; ce qui se découvre à
+l'usage ne l'est pas encore.
+
+Tant que le numéro commence par un zéro, **la surface publique peut bouger** — les six contrats
+compris. Deux conditions pour le 1.0, et pas une de moins :
+
+- avoir tourné dans **deux applications réelles**, avec un mécanisme de second facteur branché ;
+- que chacune ait reversé sa règle enfreinte dans
+  [docs/ce-qui-reste-au-projet.md](docs/ce-qui-reste-au-projet.md).
+
+C'est cette seconde condition qui compte. Un paquet correct devient un paquet qui prévient le
+jour où il a vu quelqu'un se tromper pour de bon.
