@@ -1,0 +1,156 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ArnaudMoncondhuy\AuthenticationPolicy\Bridge;
+
+use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
+use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
+use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
+use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
+use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
+use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Examine une installation, et dit ce que personne d'autre ne dira.
+ *
+ * Les passes de compilation tiennent ce qui est démontrable : une délégation sans stockage, un
+ * verrou sans sortie, une durée sans plafond. Restent trois choses qu'aucune d'elles ne peut
+ * refuser, parce qu'aucune n'est une faute — et que toutes se paient plus tard.
+ *
+ * **Les durcissements sans bouton.** La limitation des tentatives et les attributs du cookie de
+ * session n'appartiennent pas à ce paquet, ne cassent rien par leur absence, et ne s'écrivent
+ * dans aucun journal. Ils s'oublient donc, et c'est ici qu'on les voit.
+ *
+ * **Les réglages que ce paquet résout sans les appliquer.** Une politique peut exiger des codes
+ * de secours ; c'est le projet qui refuse d'entrer sans eux. La distinction est invisible à la
+ * lecture de la configuration, et c'est exactement là qu'on croit tenu ce qui ne l'est pas.
+ *
+ * **Ce qui ne s'applique qu'à la prochaine connexion.** Les durées de session sont résolues à
+ * l'ouverture : les sessions déjà ouvertes gardent les leurs.
+ *
+ * Elle échoue plutôt que d'afficher : une routine qualité ne peut s'appuyer que sur ce qui rend
+ * un code de sortie.
+ */
+#[AsCommand(
+    name: 'authentication-policy:doctor',
+    description: 'Vérifie qu\'une installation de la politique d\'authentification se tient.',
+)]
+final class DoctorCommand extends Command
+{
+    /** @param list<string> $findings */
+    public function __construct(
+        private readonly Policy $policy,
+        private readonly array $findings = [],
+        private readonly ?string $enrollmentPath = null,
+        private readonly ?RolePolicies $roles = null,
+        private readonly ?UserPreferences $preferences = null,
+        private readonly ?Enrollment $enrollment = null,
+    ) {
+        parent::__construct();
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $console = new SymfonyStyle($input, $output);
+
+        $this->reportTheLock($console);
+        $this->reportTheStores($console);
+        $this->reportWhoEnforces($console);
+
+        return $this->reportHardenedDefaults($console);
+    }
+
+    private function reportTheLock(SymfonyStyle $console): void
+    {
+        $console->section('Le verrou d\'enrôlement');
+
+        if (!$this->policy->canRequire(Setting::TwoFactor)) {
+            $console->writeln('Ouvert : la politique n\'exige de second facteur de personne, et ne le délègue pas.');
+
+            return;
+        }
+
+        $console->writeln(\sprintf(
+            "Fermé par défaut. Une porte non dispensée renvoie vers %s.\n"
+            .'Le service qui dit si quelqu\'un a posé son second facteur : %s.',
+            $this->enrollmentPath ?? '(aucun chemin)',
+            null === $this->enrollment ? 'aucun' : $this->enrollment::class,
+        ));
+    }
+
+    private function reportTheStores(SymfonyStyle $console): void
+    {
+        $console->section('Où les décisions déléguées sont rangées');
+
+        $console->table(
+            ['Niveau', 'Réglages délégués', 'Stockage branché'],
+            [
+                [
+                    Decider::Role->label(),
+                    self::names($this->policy->delegatedTo(Decider::Role)),
+                    null === $this->roles ? 'aucun' : $this->roles::class,
+                ],
+                [
+                    Decider::User->label(),
+                    self::names($this->policy->delegatedTo(Decider::User)),
+                    null === $this->preferences ? 'aucun' : $this->preferences::class,
+                ],
+            ],
+        );
+    }
+
+    private function reportWhoEnforces(SymfonyStyle $console): void
+    {
+        $delegated = [];
+
+        foreach (Setting::all() as $setting) {
+            if (!$setting->enforcedHere() && $this->policy->canRequire($setting)) {
+                $delegated[] = $setting->value;
+            }
+        }
+
+        if ([] === $delegated) {
+            return;
+        }
+
+        $console->section('Résolus ici, appliqués par vous');
+        $console->writeln(
+            "Ce paquet dit ce qui est exigé, il ne fabrique aucun mécanisme. Ces réglages n'ont d'effet\n"
+            ."que si le code du projet les lit et en tire les conséquences :\n  - "
+            .implode("\n  - ", $delegated)
+        );
+    }
+
+    private function reportHardenedDefaults(SymfonyStyle $console): int
+    {
+        $console->section('Les durcissements que ce paquet ne règle pas');
+
+        if ([] === $this->findings) {
+            $console->success('Rien à signaler.');
+
+            return Command::SUCCESS;
+        }
+
+        foreach ($this->findings as $finding) {
+            $console->writeln(\sprintf('  - %s', $finding));
+        }
+
+        $console->error('Ces durcissements natifs manquent. Aucun ne casse quoi que ce soit par son absence.');
+
+        return Command::FAILURE;
+    }
+
+    /** @param list<Setting> $settings */
+    private static function names(array $settings): string
+    {
+        return [] === $settings
+            ? 'aucun'
+            : implode(', ', array_map(static fn (Setting $setting): string => $setting->value, $settings));
+    }
+}

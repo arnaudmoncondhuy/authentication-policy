@@ -1,0 +1,68 @@
+# Les couches du paquet, et le sens dans lequel elles ont le droit de se connaître.
+#
+# Ce fichier tient la promesse centrale du paquet : le contrat entre dans le domaine d'une
+# application sans y faire entrer Symfony. Il ne le tient que si `Contract` ne cite personne.
+
+deptrac:
+  paths:
+    - ../src
+
+  layers:
+    # ── Contract : ce qu'une application importe dans son domaine ────────────────────────
+    # Les classes posées à la racine de src/, la classe de bundle exceptée — celle-ci doit y
+    # rester pour que `getPath()` trouve config/, mais elle branche Symfony et n'a donc rien
+    # à faire ici.
+    #
+    # La politique, sa résolution, les contrats de stockage et l'attribut de dispense. Aucune
+    # dépendance, pas même le framework : un écran de profil lit une décision sans que le
+    # domaine connaisse la sécurité de Symfony.
+    - name: Contract
+      collectors:
+        - type: bool
+          must:
+            - type: classLike
+              value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\[A-Za-z0-9_]+$'
+          must_not:
+            - type: classLike
+              value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\AuthenticationPolicyBundle$'
+
+    # ── DependencyInjection : les refus de compilation ───────────────────────────────────
+    # Les quatre passes qui arrêtent la compilation, le relevé des durcissements natifs, et la
+    # reconstruction de la politique depuis ce que le conteneur sait porter.
+    - name: DependencyInjection
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\DependencyInjection\\.+$'
+
+    # ── Bridge : les adaptateurs, nommés par ce qu'ils branchent ─────────────────────────
+    # Le verrou, les durées de session, les deux commandes, l'horloge. Tout ce qui connaît une
+    # requête, un jeton ou une console vit ici, et nulle part ailleurs.
+    - name: Bridge
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Bridge\\.+$'
+
+    # ── Bundle : le point de montage ─────────────────────────────────────────────────────
+    - name: Bundle
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\AuthenticationPolicyBundle$'
+
+  ruleset:
+    # L'invariant du paquet. Tout le reste en découle.
+    Contract: []
+
+    DependencyInjection:
+      - Contract
+
+    Bridge:
+      - Contract
+
+    # Le bundle enregistre les passes et importe la configuration des services. Il ne connaît
+    # pas les adaptateurs : ceux-ci sont déclarés en configuration, sous condition.
+    Bundle:
+      - Contract
+      - DependencyInjection
+
+  # Aucune violation tolérée. Une dette figée ici cesse d'être visible.
+  skip_violations: []

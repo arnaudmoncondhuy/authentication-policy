@@ -1,0 +1,72 @@
+{
+    "name": "arnaudmoncondhuy/authentication-policy",
+    "description": "À quel point faut-il prouver que c'est bien soi. La politique se déclare une fois, le conteneur refuse de compiler ce qui la contournerait, et le verrou d'enrôlement est fermé par défaut.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "keywords": [
+        "symfony",
+        "bundle",
+        "authentication",
+        "two-factor",
+        "session",
+        "compiler-pass"
+    ],
+    "authors": [
+        {
+            "name": "Arnaud Moncondhuy",
+            "email": "arnaudmoncondhuy@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=8.4",
+        "psr/clock": "^1.0",
+        "symfony/config": "^7.3 || ^8.1",
+        "symfony/dependency-injection": "^7.3 || ^8.1",
+        "symfony/event-dispatcher": "^7.3 || ^8.1",
+        "symfony/http-foundation": "^7.3 || ^8.1",
+        "symfony/http-kernel": "^7.3 || ^8.1",
+        "symfony/security-core": "^7.3 || ^8.1",
+        "symfony/security-http": "^7.3 || ^8.1"
+    },
+    "require-dev": {
+        "deptrac/deptrac": "^4.7",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^13.3",
+        "rector/rector": "^2.6",
+        "symfony/clock": "^7.3 || ^8.1",
+        "symfony/console": "^7.3 || ^8.1",
+        "symfony/framework-bundle": "^7.3 || ^8.1",
+        "symfony/rate-limiter": "^7.3 || ^8.1",
+        "symfony/routing": "^7.3 || ^8.1",
+        "symfony/runtime": "^7.3 || ^8.1",
+        "symfony/security-bundle": "^7.3 || ^8.1"
+    },
+    "suggest": {
+        "symfony/console": "Pour les commandes authentication-policy:policy et authentication-policy:doctor.",
+        "scheb/2fa-bundle": "Le mécanisme de double authentification que la politique gouverne.",
+        "web-auth/webauthn-symfony-bundle": "Le mécanisme de passkey que la politique gouverne."
+    },
+    "autoload": {
+        "psr-4": {
+            "ArnaudMoncondhuy\\AuthenticationPolicy\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ArnaudMoncondhuy\\AuthenticationPolicy\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true,
+            "symfony/runtime": true
+        },
+        "sort-packages": true
+    }
+}
