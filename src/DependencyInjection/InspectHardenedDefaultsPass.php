@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -26,6 +27,7 @@ final readonly class InspectHardenedDefaultsPass implements CompilerPassInterfac
         $findings = [
             ...$this->aboutTheSessionCookie($container),
             ...$this->aboutLoginThrottling($container),
+            ...$this->aboutTheRealSessionLifetime($container),
         ];
 
         $container->setParameter(Parameter::FINDINGS, $findings);
@@ -70,6 +72,52 @@ final readonly class InspectHardenedDefaultsPass implements CompilerPassInterfac
         }
 
         return $findings;
+    }
+
+    /**
+     * La durée que le stockage des sessions accorde réellement.
+     *
+     * `session.gc_maxlifetime` vaut 1440 secondes par défaut chez PHP — vingt-quatre minutes.
+     * Un gestionnaire qui range les sessions ailleurs que dans des fichiers s'en sert pour
+     * purger, et une session disparaît donc bien avant l'inactivité que la politique annonce.
+     *
+     * C'est le pire cas que ce paquet puisse produire : une politique qui affiche huit heures
+     * à quelqu'un dont la session tombe au bout de vingt minutes. Le réglage n'appartient pas
+     * au paquet, il ne peut donc que le dire.
+     *
+     * @return list<string>
+     */
+    private function aboutTheRealSessionLifetime(ContainerBuilder $container): array
+    {
+        if (!$container->hasParameter('session.storage.options') || !$container->hasParameter(Parameter::RULES)) {
+            return [];
+        }
+
+        /** @var array<string, mixed> $options */
+        $options = (array) $container->getParameter('session.storage.options');
+
+        /** @var array<string, array{ceiling?: bool|int|null, delegated_to?: list<string>}> $rules */
+        $rules = $container->getParameter(Parameter::RULES);
+
+        $announced = PolicyFactory::fromArray($rules)->ruleFor(Setting::IdleTimeout)->ceiling;
+        $granted = $options['gc_maxlifetime'] ?? \ini_get('session.gc_maxlifetime');
+
+        if (!\is_int($announced) || \PHP_INT_MAX === $announced || !is_numeric($granted)) {
+            return [];
+        }
+
+        $granted = (int) $granted;
+
+        if ($granted >= $announced) {
+            return [];
+        }
+
+        return [\sprintf(
+            'La politique annonce %d secondes sans activité, mais le stockage des sessions n\'en accorde que %d '
+            .'(`framework.session.gc_maxlifetime`) : la session tombe avant, sans que rien ne l\'explique.',
+            $announced,
+            $granted,
+        )];
     }
 
     /**
