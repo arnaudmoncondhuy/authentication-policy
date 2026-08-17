@@ -45,43 +45,6 @@
         {% endfor %}
     {% endif %}
 
-    <h2>{{ 'La durée de vos sessions'|trans({}, 'authentication_policy') }}</h2>
-
-    <section class="app-card app-stack">
-        <div>
-            <p>{{ 'Votre session se ferme après %heures% h sans activité.'|trans({'%heures%': (inactivite / 3600)|round(0, 'floor')}, 'authentication_policy') }}</p>
-            <p class="app-card-meta">{{ 'Et au plus tard %jours% jours après la connexion.'|trans({'%jours%': (duree_maximale / 86400)|round(0, 'floor')}, 'authentication_policy') }}</p>
-        </div>
-
-        {% if impose_par_role %}
-            <p class="app-alert" data-tone="info">{{ 'Cette durée est imposée par votre rôle.'|trans({}, 'authentication_policy') }}</p>
-        {% endif %}
-
-        {% if reglable %}
-            <form method="post" class="app-stack">
-                <div class="app-field">
-                    <label class="app-field-label" for="idle_timeout">{{ 'Fermer ma session plus tôt'|trans({}, 'authentication_policy') }}</label>
-                    <select id="idle_timeout" name="idle_timeout">
-                        <option value="">{{ 'Garder la durée par défaut'|trans({}, 'authentication_policy') }}</option>
-                        {% for secondes in choix_possibles %}
-                            <option value="{{ secondes }}" {{ secondes == choix_personnel ? 'selected' : '' }}>
-                                {{ secondes < 3600
-                                    ? '%minutes% minutes'|trans({'%minutes%': (secondes / 60)|round(0, 'floor')}, 'authentication_policy')
-                                    : '%heures% h'|trans({'%heures%': (secondes / 3600)|round(0, 'floor')}, 'authentication_policy') }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
-
-                <div class="app-card-footer">
-                    <button type="submit" class="app-btn" data-tone="accent" data-size="sm">{{ 'Enregistrer'|trans({}, 'authentication_policy') }}</button>
-                </div>
-            </form>
-        {% endif %}
-    </section>
-
     {% if a_poser is not empty %}
         <h2>{{ 'Ce que vous pouvez encore ajouter'|trans({}, 'authentication_policy') }}</h2>
 

@@ -8,14 +8,8 @@ use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
 use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
-use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
-use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
-use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
-use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -42,14 +36,8 @@ return static function (ContainerConfigurator $container): void {
         ->set(SecurityScreenController::class)
             ->args([
                 service(Factors::class),
-                service(PolicyResolver::class),
-                service(Policy::class),
-                service(RolePolicies::class),
-                service(UserPreferences::class)->nullOnInvalid(),
                 service(Visitor::class),
                 service(Environment::class),
-                service(UrlGeneratorInterface::class),
-                service(CsrfTokenManagerInterface::class)->nullOnInvalid(),
                 param(Parameter::TEMPLATE.'.security'),
                 param(Parameter::TEMPLATE.'.layout'),
             ])

@@ -136,8 +136,12 @@ aux migrations du projet, et `doctor` dit ce qui manque.
 
 ## Un écran, tous les moyens
 
-`/securite` montre ce qui protège le compte, ce qui lui manque, et la durée de ses sessions.
-Aucun mécanisme n'y est nommé : l'écran affiche ce que les moyens installés déclarent.
+`/securite` montre ce qui protège le compte et ce qui lui manque. Aucun mécanisme n'y est nommé :
+l'écran affiche ce que les moyens installés déclarent.
+
+Il ne montre pas la durée des sessions, et ne permet pas de la choisir. Elle se décide en
+configuration, comme la force du chiffrement : ce n'est pas une préférence, et l'afficher
+inviterait à en discuter.
 
 Deux voies de surcharge, cumulables. La clé `templates.<écran>` nomme un autre gabarit ; un
 fichier du même nom dans `templates/bundles/AuthenticationPolicyBundle/` en remplace un sans rien
