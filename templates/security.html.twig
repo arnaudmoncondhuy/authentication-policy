@@ -30,31 +30,40 @@
     {% if poses is not empty %}
         <h2>{{ 'Ce qui protège ce compte'|trans({}, 'authentication_policy') }}</h2>
 
-        {% for facteur in poses %}
-            <section class="app-card">
-                <div>
-                    <h3 class="app-card-title">{{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}</h3>
-                    <p class="app-card-meta">
-                        {{ ('factor.' ~ facteur.name ~ '.state')|trans({'%count%': facteur.count}, 'authentication_policy') }}
-                    </p>
-                </div>
-                <div class="app-card-footer">
-                    <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">{{ 'Gérer'|trans({}, 'authentication_policy') }}</a>
-                </div>
-            </section>
-        {% endfor %}
+        <section class="app-card">
+            <ul class="app-list">
+                {% for facteur in poses %}
+                    <li class="app-list-item">
+                        <div>
+                            <p class="app-list-title">{{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}</p>
+                            <p class="app-list-meta">
+                                {{ ('factor.' ~ facteur.name ~ '.state')|trans({'%count%': facteur.count}, 'authentication_policy') }}
+                            </p>
+                        </div>
+                        <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">
+                            {{ 'Gérer'|trans({}, 'authentication_policy') }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
     {% endif %}
 
     {% if a_poser is not empty %}
         <h2>{{ 'Ce que vous pouvez ajouter'|trans({}, 'authentication_policy') }}</h2>
 
-        <div class="app-card app-stack">
-            {% for facteur in a_poser %}
-                <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">
-                    {{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}
-                </a>
-            {% endfor %}
-        </div>
+        <section class="app-card">
+            <ul class="app-list">
+                {% for facteur in a_poser %}
+                    <li class="app-list-item">
+                        <p class="app-list-title">{{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}</p>
+                        <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">
+                            {{ 'Ajouter'|trans({}, 'authentication_policy') }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
     {% endif %}
 </div>
 {% endblock %}
