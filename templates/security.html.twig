@@ -14,8 +14,8 @@
 
     {# Le verdict d'abord : ce qu'on veut savoir avant de lire la liste. #}
     {% if total == 0 %}
-        <p class="app-alert" data-tone="danger" role="status">
-            {{ "Aucun moyen ne protège ce compte."|trans({}, 'authentication_policy') }}
+        <p class="app-alert" data-tone="info" role="status">
+            {{ 'Ajoutez un moyen de vous reconnaître.'|trans({}, 'authentication_policy') }}
         </p>
     {% elseif not recours %}
         <p class="app-alert" data-tone="warning" role="status">
@@ -46,7 +46,7 @@
     {% endif %}
 
     {% if a_poser is not empty %}
-        <h2>{{ 'Ce que vous pouvez encore ajouter'|trans({}, 'authentication_policy') }}</h2>
+        <h2>{{ 'Ce que vous pouvez ajouter'|trans({}, 'authentication_policy') }}</h2>
 
         <div class="app-card app-stack">
             {% for facteur in a_poser %}

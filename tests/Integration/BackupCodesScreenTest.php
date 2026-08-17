@@ -70,7 +70,7 @@ final class BackupCodesScreenTest extends TestCase
     {
         $page = (string) $this->visit($this->boot(), '/securite')->getContent();
 
-        self::assertStringContainsString('Aucun moyen ne protège ce compte', $page);
+        self::assertStringContainsString('Ajoutez un moyen', $page);
         self::assertStringContainsString('/securite/codes-de-secours', $page);
     }
 
