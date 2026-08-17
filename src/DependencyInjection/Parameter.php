@@ -43,11 +43,8 @@ final class Parameter
     /** Le service qui range les codes de secours, ou null pour celui du paquet. */
     public const string BACKUP_CODES_STORE = 'authentication_policy.backup_codes.store';
 
-    /** Le gabarit de l'écran des codes de secours. */
-    public const string BACKUP_CODES_TEMPLATE = 'authentication_policy.backup_codes.template';
-
-    /** Le cadre dont cet écran hérite, ou null pour celui du paquet. */
-    public const string BACKUP_CODES_LAYOUT = 'authentication_policy.backup_codes.layout';
+    /** Le cadre dont les écrans du paquet héritent, ou null pour celui du paquet. */
+    public const string LAYOUT = 'authentication_policy.layout';
 
     /** Créer la table des codes de secours au premier usage. */
     public const string BACKUP_CODES_AUTO_SETUP = 'authentication_policy.backup_codes.auto_setup';

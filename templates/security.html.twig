@@ -1,0 +1,60 @@
+{#
+    L'écran « Ma sécurité » : ce qui protège le compte, et ce qui lui manque.
+
+    Il se remplace en entier depuis l'application : un fichier du même nom dans
+    `templates/bundles/AuthenticationPolicyBundle/` prend sa place.
+#}
+{% extends layout ?? '@AuthenticationPolicy/layout.html.twig' %}
+
+{% block title %}{{ 'Ma sécurité'|trans({}, 'authentication_policy') }}{% endblock %}
+
+{% block body %}
+<div class="app-stack">
+    <h1>{{ 'Ma sécurité'|trans({}, 'authentication_policy') }}</h1>
+
+    {# Le verdict d'abord : ce qu'on veut savoir avant de lire la liste. #}
+    {% if total == 0 %}
+        <p class="app-alert" data-tone="danger" role="status">
+            {{ "Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre."|trans({}, 'authentication_policy') }}
+        </p>
+    {% elseif not recours %}
+        <p class="app-alert" data-tone="warning" role="status">
+            {{ "Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte."|trans({}, 'authentication_policy') }}
+        </p>
+    {% else %}
+        <p class="app-alert" data-tone="success" role="status">
+            {{ 'Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.'|trans({}, 'authentication_policy') }}
+        </p>
+    {% endif %}
+
+    {% if poses is not empty %}
+        <h2>{{ 'Ce qui protège ce compte'|trans({}, 'authentication_policy') }}</h2>
+
+        {% for facteur in poses %}
+            <section class="app-card">
+                <div>
+                    <h3 class="app-card-title">{{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}</h3>
+                    <p class="app-card-meta">
+                        {{ ('factor.' ~ facteur.name ~ '.state')|trans({'%count%': facteur.count}, 'authentication_policy') }}
+                    </p>
+                </div>
+                <div class="app-card-footer">
+                    <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">{{ 'Gérer'|trans({}, 'authentication_policy') }}</a>
+                </div>
+            </section>
+        {% endfor %}
+    {% endif %}
+
+    {% if a_poser is not empty %}
+        <h2>{{ 'Ce que vous pouvez encore ajouter'|trans({}, 'authentication_policy') }}</h2>
+
+        <div class="app-card app-stack">
+            {% for facteur in a_poser %}
+                <a class="app-btn" data-variant="subtle" data-size="sm" href="{{ path(facteur.route) }}">
+                    {{ ('factor.' ~ facteur.name)|trans({}, 'authentication_policy') }}
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

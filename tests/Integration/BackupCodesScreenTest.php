@@ -30,12 +30,16 @@ final class BackupCodesScreenTest extends TestCase
         $this->kernel = null;
     }
 
-    public function testEteintsRienNEstInstalle(): void
+    /**
+     * Éteint, le mécanisme n'existe pas. Le compte des moyens, lui, demeure : c'est le cœur, et
+     * une application qui écrit son propre moyen doit pouvoir le faire compter.
+     */
+    public function testEteintLeMecanismeNEstPasInstalleMaisLeCompteDemeure(): void
     {
         $container = $this->boot(['enabled' => false])->getContainer();
 
         self::assertFalse($container->has(BackupCodes::class));
-        self::assertFalse($container->has(Factors::class));
+        self::assertTrue($container->has(Factors::class));
     }
 
     public function testAllumesLeMecanismeEstLaEtSeCompteParmiLesMoyens(): void
@@ -67,6 +71,26 @@ final class BackupCodesScreenTest extends TestCase
 
         self::assertSame(1, $factors->countFor('arnaud'));
         self::assertArrayHasKey('quelque_chose_de_l_application', $factors->detailFor('arnaud'));
+    }
+
+    /**
+     * L'écran de sécurité : ce qui protège le compte, ce qui lui manque, et où le régler. Il
+     * doit tenir debout sans qu'aucun mécanisme du paquet ne soit allumé — c'est même là qu'il
+     * a le plus à dire.
+     */
+    public function testLEcranDeSecuriteDitCeQuiManqueAvantQueCaNeCoute(): void
+    {
+        $kernel = $this->boot();
+
+        $request = Request::create('/securite');
+        $request->headers->set('PHP_AUTH_USER', 'arnaud');
+        $request->headers->set('PHP_AUTH_PW', 'secret');
+        $page = (string) $kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, false)->getContent();
+
+        // Un moyen posé par l'application, aucun recours : c'est le compte d'aujourd'hui.
+        self::assertStringContainsString('pas de recours', $page);
+        self::assertStringContainsString('/le-moyen', $page);
+        self::assertStringContainsString('/codes-de-secours', $page);
     }
 
     public function testLEcranSAfficheSansQueLApplicationNEcriveRien(): void
@@ -120,7 +144,6 @@ final class BackupCodesScreenTest extends TestCase
             policy: ['backup_codes' => ($backupCodes ?? [
                 'enabled' => true,
                 'store' => InMemoryBackupCodeStore::class,
-                'layout' => null,
             ])],
             twig: true,
         );

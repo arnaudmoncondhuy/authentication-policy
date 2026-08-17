@@ -99,6 +99,16 @@ final class FactorsTest extends TestCase
             {
                 return $this->count;
             }
+
+            public function manageAt(): string
+            {
+                return 'quelque_part';
+            }
+
+            public function isRecovery(): bool
+            {
+                return 'backup_codes' === $this->name;
+            }
         };
     }
 }

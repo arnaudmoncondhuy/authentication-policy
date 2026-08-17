@@ -151,6 +151,9 @@ final class PolicyTestKernel extends Kernel
         if ($this->twig) {
             $routes->import(__DIR__.'/../../config/routes.php');
         }
+
+        // Le moyen que l'application déclare mène quelque part, comme n'importe quel autre.
+        $routes->add('page_du_moyen', '/le-moyen')->controller(GuardedController::class);
     }
 
     /** La date de la source la plus récemment modifiée du paquet. */

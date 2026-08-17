@@ -1,0 +1,23 @@
+# Les mots des écrans du paquet.
+#
+# Chaque mécanisme apporte les siens sous `factor.<son nom>` : ceux du paquet sont ici, ceux
+# d'une application se posent dans son propre catalogue, sous la même clé.
+
+'Ma sécurité': Ma sécurité
+'Ce qui protège ce compte': Ce qui protège ce compte
+'Ce que vous pouvez encore ajouter': Ce que vous pouvez encore ajouter
+'Gérer': Gérer
+"Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre.": "Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre."
+"Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte.": "Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte."
+'Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.': Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.
+
+'Codes de secours': Codes de secours
+'Notez-les maintenant : ils ne seront plus jamais affichés.': "Notez-les maintenant : ils ne seront plus jamais affichés."
+'%count% codes restent utilisables.': '%count% codes restent utilisables.'
+"Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte.": Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte.
+'Remplacer la série': Remplacer la série
+'Poser une série': Poser une série
+'Retirer les codes': Retirer les codes
+
+factor.backup_codes: Codes de secours
+factor.backup_codes.state: '%count% codes encore utilisables'

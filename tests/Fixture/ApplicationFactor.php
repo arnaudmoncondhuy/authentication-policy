@@ -23,4 +23,14 @@ final class ApplicationFactor implements Factor
     {
         return 'arnaud' === $userIdentifier ? 1 : 0;
     }
+
+    public function manageAt(): string
+    {
+        return 'page_du_moyen';
+    }
+
+    public function isRecovery(): bool
+    {
+        return false;
+    }
 }

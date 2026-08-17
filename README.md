@@ -121,6 +121,29 @@ ne relève pas de l'authentification. C'est du plafonnement de lecture, et c'est
 **Il ne décide pas qui a le droit de changer un réglage.** C'est de l'autorisation, et les deux
 paquets restent indépendants.
 
+## Un écran, tous les moyens
+
+`/securite` montre ce qui protège le compte, ce qui lui manque, et mène là où chaque moyen se
+règle — sur le modèle des pages de sécurité qu'on connaît. Il existe dès l'installation, même
+sans aucun mécanisme allumé : c'est là qu'il a le plus à dire.
+
+Il ne nomme aucun mécanisme : il affiche ce que les moyens installés déclarent. Un moyen écrit
+par l'application y figure au même titre que ceux du paquet, sans rien avoir à inscrire nulle
+part — il suffit qu'il implémente `Factor`.
+
+```php
+final class TotpFactor implements Factor
+{
+    public function name(): string { return 'totp'; }
+    public function countFor(string $user): int { /* … */ }
+    public function manageAt(): string { return 'ma_route_totp'; }
+    public function isRecovery(): bool { return false; }
+}
+```
+
+Les mots viennent du catalogue `authentication_policy` : `factor.totp` pour le nom,
+`factor.totp.state` pour l'état affiché.
+
 ## Les codes de secours
 
 Le filet : de quoi entrer quand tout le reste est perdu. Dix codes, chacun bon une fois, rendus
@@ -128,9 +151,10 @@ une seule fois à l'écran — après quoi seule leur empreinte subsiste.
 
 ```yaml
 authentication_policy:
+    layout: 'base.html.twig'   # le cadre de tous les écrans du paquet ; absent, il en fournit un nu
+
     backup_codes:
         enabled: true
-        layout: 'base.html.twig'   # votre cadre ; absent, le paquet en fournit un nu
 ```
 
 ```yaml

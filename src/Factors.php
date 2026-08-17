@@ -54,6 +54,42 @@ final readonly class Factors
     }
 
     /**
+     * Ce qu'il faut pour dresser l'écran de sécurité : chaque moyen, son état, où le gérer.
+     *
+     * @return list<array{name: non-empty-string, count: int, route: non-empty-string, recovery: bool}>
+     */
+    public function inventoryFor(string $userIdentifier): array
+    {
+        $inventory = [];
+
+        foreach ($this->factors as $factor) {
+            $inventory[] = [
+                'name' => $factor->name(),
+                'count' => max(0, $factor->countFor($userIdentifier)),
+                'route' => $factor->manageAt(),
+                'recovery' => $factor->isRecovery(),
+            ];
+        }
+
+        return $inventory;
+    }
+
+    /**
+     * Un compte tenu debout par un seul moyen tombe avec lui : c'est vrai qu'il y ait un
+     * recours ou non, et c'est ce que l'écran doit dire avant que ça n'arrive.
+     */
+    public function hasRecoveryFor(string $userIdentifier): bool
+    {
+        foreach ($this->factors as $factor) {
+            if ($factor->isRecovery() && $factor->countFor($userIdentifier) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Autorise, ou non, à retirer des exemplaires d'un moyen.
      *
      * Le compte est fait sur ce qui resterait, jamais sur ce qui existe : un mécanisme qui

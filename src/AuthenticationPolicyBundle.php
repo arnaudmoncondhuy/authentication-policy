@@ -86,6 +86,10 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->scalarNode('layout')
+                    ->defaultNull()
+                    ->info('Le cadre dont les écrans du paquet héritent — le vôtre. Absent, le paquet en fournit un nu.')
+                ->end()
                 ->arrayNode('backup_codes')
                     ->info('Les codes de secours : le moyen d\'entrer quand tous les autres sont perdus.')
                     ->addDefaultsIfNotSet()
@@ -97,14 +101,6 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                         ->scalarNode('store')
                             ->defaultNull()
                             ->info('Le service qui les range. Absent, le paquet les range lui-même dans une table à eux.')
-                        ->end()
-                        ->scalarNode('template')
-                            ->defaultValue('@AuthenticationPolicy/backup_codes.html.twig')
-                            ->info('Le gabarit de l\'écran. Le remplacer ici, ou déposer le même nom dans templates/bundles/.')
-                        ->end()
-                        ->scalarNode('layout')
-                            ->defaultNull()
-                            ->info('Le cadre dont l\'écran hérite — le vôtre, avec vos en-têtes. Absent, le paquet en fournit un nu.')
                         ->end()
                         ->booleanNode('auto_setup')
                             ->defaultTrue()
@@ -152,22 +148,31 @@ final class AuthenticationPolicyBundle extends AbstractBundle
             }
         }
 
-        /** @var array{enabled: bool, store: string|null, template: string, layout: string|null, auto_setup: bool} $backupCodes */
-        $backupCodes = $config['backup_codes'] ?? [
-            'enabled' => false,
-            'store' => null,
-            'template' => '@AuthenticationPolicy/backup_codes.html.twig',
-            'layout' => null,
-            'auto_setup' => true,
-        ];
+        /** @var array{enabled: bool, store: string|null, auto_setup: bool} $backupCodes */
+        $backupCodes = $config['backup_codes'] ?? ['enabled' => false, 'store' => null, 'auto_setup' => true];
+
+        $container->setParameter(Parameter::LAYOUT, $config['layout'] ?? null);
+
+        // Le compte des moyens est le cœur, pas un mécanisme : il vaut même quand aucun n'est
+        // allumé, puisque l'application peut en écrire un elle-même.
+        $configurator->import('../config/factors.php');
+
+        // Les écrans réclament de quoi rendre une page. La classe suffit à l'analyse, pas au
+        // conteneur : c'est le bundle enregistré qui donne le service.
+        $screens = isset($bundles['TwigBundle']);
+
+        if ($screens) {
+            $configurator->import('../config/screens.php');
+        }
 
         if ($backupCodes['enabled']) {
             $container->setParameter(Parameter::BACKUP_CODES_AUTO_SETUP, $backupCodes['auto_setup']);
-            $container->setParameter(Parameter::BACKUP_CODES_TEMPLATE, $backupCodes['template']);
-            $container->setParameter(Parameter::BACKUP_CODES_LAYOUT, $backupCodes['layout']);
 
-            $configurator->import('../config/factors.php');
             $configurator->import('../config/backup_codes.php');
+
+            if ($screens) {
+                $configurator->import('../config/backup_codes_screen.php');
+            }
 
             // Le rangement du paquet est déjà en place ; une application qui range ailleurs le
             // remplace ici, et c'est la seule décision qu'elle ait à prendre.

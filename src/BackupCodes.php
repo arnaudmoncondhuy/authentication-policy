@@ -41,6 +41,16 @@ final readonly class BackupCodes implements Factor
         return \count($this->store->hashesFor($userIdentifier));
     }
 
+    public function manageAt(): string
+    {
+        return 'authentication_policy_backup_codes';
+    }
+
+    public function isRecovery(): bool
+    {
+        return true;
+    }
+
     /**
      * Pose une série neuve et la rend en clair — la seule et unique fois où elle est lisible.
      *

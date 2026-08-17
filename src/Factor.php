@@ -31,4 +31,22 @@ interface Factor
      * un ; des codes de secours répondent ce qu'il en reste, car ils s'épuisent.
      */
     public function countFor(string $userIdentifier): int;
+
+    /**
+     * La route où l'on pose et retire ce moyen.
+     *
+     * C'est ce qui permet à l'écran de sécurité de mener quelque part : un moyen qu'on ne
+     * saurait pas atteindre n'y figurerait que pour informer, ce qui n'aide personne.
+     *
+     * @return non-empty-string
+     */
+    public function manageAt(): string;
+
+    /**
+     * Ce moyen sert-il de recours quand tous les autres sont perdus.
+     *
+     * Un compte qui n'en a aucun tient debout tant que rien ne casse. L'écran de sécurité le
+     * dit, sans avoir à connaître un seul mécanisme par son nom.
+     */
+    public function isRecovery(): bool;
 }
