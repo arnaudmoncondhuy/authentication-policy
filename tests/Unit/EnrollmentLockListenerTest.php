@@ -6,12 +6,15 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Unit;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\EnrollmentLockListener;
 use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
+use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
+use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
 use ArnaudMoncondhuy\AuthenticationPolicy\Rule;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
-use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryRolePolicies;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\StubFactor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\StubFirewall;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\EnrollmentController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\ExemptedMethodController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\GuardedController;
@@ -36,7 +39,7 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new GuardedController());
 
-        $this->lockFor(enrolled: [])($event);
+        $this->lockFor(posed: 0)($event);
 
         self::assertInstanceOf(RedirectResponse::class, ($event->getController())());
     }
@@ -45,7 +48,7 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new EnrollmentController());
 
-        $this->lockFor(enrolled: [])($event);
+        $this->lockFor(posed: 0)($event);
 
         self::assertSame('la page qui enrôle', ($event->getController())()->getContent());
     }
@@ -55,19 +58,19 @@ final class EnrollmentLockListenerTest extends TestCase
         $controller = new ExemptedMethodController();
 
         $exempted = $this->eventFor([$controller, 'backupCodes']);
-        $this->lockFor(enrolled: [])($exempted);
+        $this->lockFor(posed: 0)($exempted);
         self::assertSame('les codes de secours', ($exempted->getController())()->getContent());
 
         $guarded = $this->eventFor([$controller, 'settings']);
-        $this->lockFor(enrolled: [])($guarded);
+        $this->lockFor(posed: 0)($guarded);
         self::assertInstanceOf(RedirectResponse::class, ($guarded->getController())());
     }
 
-    public function testQuiSEstEnroleTraverseLeVerrou(): void
+    public function testQuiAPoseUnMoyenTraverseLeVerrou(): void
     {
         $event = $this->eventFor(new GuardedController());
 
-        $this->lockFor(enrolled: ['arnaud'])($event);
+        $this->lockFor(posed: 1)($event);
 
         self::assertSame('la page ordinaire', ($event->getController())()->getContent());
     }
@@ -76,7 +79,7 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new GuardedController(), path: '/enrolement/etape-2');
 
-        $this->lockFor(enrolled: [])($event);
+        $this->lockFor(posed: 0)($event);
 
         self::assertSame('la page ordinaire', ($event->getController())()->getContent());
     }
@@ -85,7 +88,7 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new GuardedController());
 
-        $this->lockFor(enrolled: [], token: false)($event);
+        $this->lockFor(posed: 0, token: false)($event);
 
         self::assertSame('la page ordinaire', ($event->getController())()->getContent());
     }
@@ -95,7 +98,7 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new GuardedController());
 
-        $this->lockFor(enrolled: [], roles: ['ROLE_SERVICE'])($event);
+        $this->lockFor(posed: 0, roles: ['ROLE_SERVICE'])($event);
 
         self::assertSame('la page ordinaire', ($event->getController())()->getContent());
     }
@@ -104,17 +107,31 @@ final class EnrollmentLockListenerTest extends TestCase
     {
         $event = $this->eventFor(new GuardedController(), type: HttpKernelInterface::SUB_REQUEST);
 
-        $this->lockFor(enrolled: [])($event);
+        $this->lockFor(posed: 0)($event);
+
+        self::assertSame('la page ordinaire', ($event->getController())()->getContent());
+    }
+
+    /** Un compte de machine, sur le pare-feu que le périmètre ne nomme pas. */
+    public function testUnPareFeuHorsDuPerimetreNEstPasVerrouille(): void
+    {
+        $event = $this->eventFor(new GuardedController());
+
+        $this->lockFor(posed: 0, firewall: 'machines')($event);
 
         self::assertSame('la page ordinaire', ($event->getController())()->getContent());
     }
 
     /**
-     * @param list<string> $enrolled
+     * @param int          $posed combien de moyens le compte a posés
      * @param list<string> $roles
      */
-    private function lockFor(array $enrolled, array $roles = ['ROLE_ADMIN'], bool $token = true): EnrollmentLockListener
-    {
+    private function lockFor(
+        int $posed,
+        array $roles = ['ROLE_ADMIN'],
+        bool $token = true,
+        ?string $firewall = 'main',
+    ): EnrollmentLockListener {
         $tokens = new TokenStorage();
 
         if ($token) {
@@ -126,7 +143,14 @@ final class EnrollmentLockListenerTest extends TestCase
             new InMemoryRolePolicies(['ROLE_ADMIN' => ['two_factor' => true]]),
         );
 
-        return new EnrollmentLockListener($resolver, $tokens, new InMemoryEnrollment($enrolled), '/enrolement');
+        return new EnrollmentLockListener(
+            $resolver,
+            $tokens,
+            new Factors([new StubFactor($posed)], true),
+            new Perimeter(['main']),
+            new StubFirewall($firewall),
+            '/enrolement',
+        );
     }
 
     private function eventFor(

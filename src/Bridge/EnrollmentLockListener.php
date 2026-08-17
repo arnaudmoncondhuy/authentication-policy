@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Bridge;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\DuringEnrollment;
-use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
+use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
+use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
+use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -26,16 +28,18 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  * l'on sait quelle classe va répondre, donc le premier où la dispense est lisible. Le
  * contrôleur n'est pas encore appelé.
  *
- * Ce qui ne le concerne pas, et qu'il laisse passer sans rien lire : les sous-requêtes, les
- * requêtes sans compte connecté, et tout ce dont la politique n'exige rien — un pare-feu de
- * machines, par exemple, dont les comptes n'ont pas de second facteur à poser.
+ * Ce qui ne le concerne pas, et qu'il laisse passer sans rien lire : les sous-requêtes, ce qui
+ * relève d'un pare-feu hors du périmètre — l'entrée des machines — les requêtes sans compte
+ * connecté, et tout ce dont la politique n'exige rien.
  */
 final readonly class EnrollmentLockListener
 {
     public function __construct(
         private PolicyResolver $resolver,
         private TokenStorageInterface $tokens,
-        private Enrollment $enrollment,
+        private Factors $factors,
+        private Perimeter $perimeter,
+        private Firewall $firewall,
         private string $enrollmentPath,
     ) {
     }
@@ -43,6 +47,12 @@ final readonly class EnrollmentLockListener
     public function __invoke(ControllerEvent $event): void
     {
         if (!$event->isMainRequest()) {
+            return;
+        }
+
+        // Le périmètre passe avant le jeton : une machine authentifiée porte un jeton comme
+        // une personne, et rien après ce point ne saurait plus les distinguer.
+        if (!$this->perimeter->covers($this->firewall->name())) {
             return;
         }
 
@@ -58,7 +68,7 @@ final readonly class EnrollmentLockListener
             return;
         }
 
-        if ($this->enrollment->isCompleteFor($identifier)) {
+        if ($this->factors->countFor($identifier) > 0) {
             return;
         }
 

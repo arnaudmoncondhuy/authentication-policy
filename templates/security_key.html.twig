@@ -1,0 +1,95 @@
+{#
+    L'écran des clés de sécurité.
+
+    Il se remplace en entier : un fichier du même nom dans `templates/bundles/` de l'application
+    prend sa place, ou la clé `templates.security_key` en nomme un autre.
+
+    Le comportement qui fait parler le navigateur à l'appareil vient du paquet ; il se reconnaît
+    au nom « authentication-policy-security-key ». Renommer ce contrôleur sans reprendre les
+    attributs ci-dessous ne casse rien visiblement : la page se charge, et la clé ne répond
+    jamais.
+#}
+{% extends layout ?? '@AuthenticationPolicy/layout.html.twig' %}
+
+{% block title %}{{ 'factor.security_key'|trans({}, 'authentication_policy') }}{% endblock %}
+
+{% block body %}
+<div class="app-stack">
+    <h1>{{ 'factor.security_key'|trans({}, 'authentication_policy') }}</h1>
+
+    {% if erreur %}
+        <p class="app-alert" data-tone="danger" role="alert">{{ erreur }}</p>
+    {% endif %}
+
+    {% if cles is empty %}
+        <p>{{ 'Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.'|trans({}, 'authentication_policy') }}</p>
+    {% else %}
+        {% for cle in cles %}
+            <div class="app-card">
+                <p class="app-card-title">
+                    {% include '@AuthenticationPolicy/_key_icon.html.twig' with {genre: cle.kind.value} only %}
+                    <strong>{{ cle.label }}</strong>
+                </p>
+                <p class="app-card-meta">
+                    {{ ('security_key.kind.' ~ cle.kind.value)|trans({}, 'authentication_policy') }}
+                    —
+                    {% if cle.lastUsedAt %}
+                        {{ 'Dernier usage : %date%'|trans({'%date%': cle.lastUsedAt|date('d/m/Y')}, 'authentication_policy') }}
+                    {% else %}
+                        {{ 'Jamais employée depuis sa pose.'|trans({}, 'authentication_policy') }}
+                    {% endif %}
+                </p>
+                <div class="app-card-footer">
+                    <form method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                        <input type="hidden" name="geste" value="remove">
+                        <input type="hidden" name="cle" value="{{ cle.credentialId }}">
+                        <button type="submit" class="app-btn" data-tone="danger" data-variant="ghost" data-size="sm"
+                                {{ cles|length == 1 and autres_moyens == 0 ? 'disabled' : '' }}>
+                            {{ 'Retirer'|trans({}, 'authentication_policy') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="app-card app-stack">
+        <h2>{{ 'Poser une clé'|trans({}, 'authentication_policy') }}</h2>
+
+        <form method="post"
+              data-controller="authentication-policy-security-key"
+              data-authentication-policy-security-key-options-value="{{ options }}"
+              data-authentication-policy-security-key-mode-value="create"
+              data-action="submit->authentication-policy-security-key#sign"
+              data-security-key-unsupported="{{ 'Ce navigateur ne sait pas parler aux clés de sécurité.'|trans({}, 'authentication_policy') }}"
+              data-security-key-refused="{{ 'La clé n’a pas répondu, ou la demande a été annulée.'|trans({}, 'authentication_policy') }}"
+              class="app-stack">
+
+            <p hidden data-authentication-policy-security-key-target="error" role="alert"></p>
+
+            <div class="app-field">
+                <label class="app-field-label" for="nom">{{ 'Nom de cette clé'|trans({}, 'authentication_policy') }}</label>
+                <input type="text" id="nom" name="nom" maxlength="60" required
+                       placeholder="{{ 'Ma clé USB bleue'|trans({}, 'authentication_policy') }}">
+                <p class="app-field-hint">{{ 'C’est ce nom qui vous permettra de la reconnaître pour la retirer.'|trans({}, 'authentication_policy') }}</p>
+            </div>
+
+            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+            <input type="hidden" name="geste" value="add">
+            <input type="hidden" name="reponse" data-authentication-policy-security-key-target="answer">
+
+            {# Deux boutons plutôt qu'un : le navigateur va droit au bon écran, au lieu d'ouvrir
+               une liste où l'on cherche ce qu'on tient déjà en main. #}
+            <div class="app-stack">
+                <button type="submit" class="app-btn" data-tone="accent" data-security-key-wanted="device">
+                    {{ 'Utiliser cet appareil'|trans({}, 'authentication_policy') }}
+                </button>
+                <button type="submit" class="app-btn" data-variant="ghost" data-security-key-wanted="portable">
+                    {{ 'Utiliser une clé branchée ou mon téléphone'|trans({}, 'authentication_policy') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

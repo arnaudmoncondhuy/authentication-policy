@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Bridge;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
+use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use Psr\Clock\ClockInterface;
@@ -46,17 +48,24 @@ final readonly class SessionLifetimeListener
         private PolicyResolver $resolver,
         private TokenStorageInterface $tokens,
         private ClockInterface $clock,
+        private Perimeter $perimeter,
+        private Firewall $firewall,
     ) {
     }
 
     /**
      * À la connexion : résoudre une fois, et ranger.
      *
-     * Une connexion sans session — un pare-feu de machines, une requête portant une clé — n'a
-     * rien à ranger, et rien à faire tomber ensuite.
+     * Une connexion hors du périmètre, ou sans session — l'entrée des machines, une requête
+     * portant une clé — n'a rien à ranger, et rien à faire tomber ensuite. Le nom vient de
+     * l'événement : c'est le seul endroit du paquet où il se lit sans la carte des pare-feux.
      */
     public function onLogin(LoginSuccessEvent $event): void
     {
+        if (!$this->perimeter->covers($event->getFirewallName())) {
+            return;
+        }
+
         $request = $event->getRequest();
 
         if (!$request->hasSession()) {
@@ -91,6 +100,12 @@ final readonly class SessionLifetimeListener
     public function onRequest(RequestEvent $event): void
     {
         if (!$event->isMainRequest() || null === $this->tokens->getToken()) {
+            return;
+        }
+
+        // Le périmètre se lit après le jeton, pour ne pas défaire l'ordre ci-dessus : la carte
+        // des pare-feux répond sans rien démarrer, mais le jeton doit être réclamé le premier.
+        if (!$this->perimeter->covers($this->firewall->name())) {
             return;
         }
 

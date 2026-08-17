@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ArnaudMoncondhuy\AuthenticationPolicy;
+namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes;
+
+use ArnaudMoncondhuy\AuthenticationPolicy\Factor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
+use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
 
 /**
  * Les codes de secours : le moyen d'entrer quand on a perdu tous les autres.
@@ -16,6 +20,8 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy;
  */
 final readonly class BackupCodes implements Factor
 {
+    public const string NAME = 'backup_codes';
+
     /** Assez de codes pour tenir, assez peu pour tenir sur un papier. */
     public const int HOW_MANY = 10;
 
@@ -23,17 +29,19 @@ final readonly class BackupCodes implements Factor
      * Huit octets tirés au sort, soit de quoi rendre vaine la recherche exhaustive le jour où
      * la base fuite : les empreintes seules ne se remontent pas en codes.
      */
-    private const int BYTES = 8;
+    public const int BYTES = 8;
 
     public function __construct(
         private BackupCodeStore $store,
         private Factors $factors,
+        private int $howMany = self::HOW_MANY,
+        private int $bytes = self::BYTES,
     ) {
     }
 
     public function name(): string
     {
-        return 'backup_codes';
+        return self::NAME;
     }
 
     public function countFor(string $userIdentifier): int
@@ -56,13 +64,13 @@ final readonly class BackupCodes implements Factor
      *
      * @return list<string> à montrer à la personne, jamais à ranger ailleurs
      */
-    public function generateFor(string $userIdentifier, int $howMany = self::HOW_MANY): array
+    public function generateFor(string $userIdentifier): array
     {
         $codes = [];
         $hashes = [];
 
-        for ($i = 0; $i < max(1, $howMany); ++$i) {
-            $code = strtolower(bin2hex(random_bytes(self::BYTES)));
+        for ($i = 0; $i < max(1, $this->howMany); ++$i) {
+            $code = strtolower(bin2hex(random_bytes(max(4, $this->bytes))));
             // Recopié à la main depuis un papier : des groupes courts se relisent sans se perdre.
             $codes[] = implode('-', str_split($code, 4));
             $hashes[] = $this->hash($code);

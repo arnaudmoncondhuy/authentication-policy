@@ -48,34 +48,48 @@ d'aujourd'hui, doit rester exact et utile. S'il ne l'est pas, il ne doit pas exi
 
 ## Ce que ce paquet promet, et ce qu'il ne promet pas
 
-Il tient **trois garanties**, et chacune arrête la compilation du conteneur :
+Il tient **sept garanties**, et chacune arrête la compilation du conteneur :
 
 1. le verrou d'enrôlement est fermé par défaut, et une dispense se pose sur une porte ;
-2. un niveau délégué a un stockage où ranger ce qu'il décide ;
-3. une durée déléguée part d'un plafond, jamais de l'infini.
+2. un verrou qui peut se fermer a un chemin de sortie **et** un mécanisme allumé ;
+3. un niveau délégué a un stockage où ranger ce qu'il décide ;
+4. une durée déléguée part d'un plafond, jamais de l'infini ;
+5. ce qui gouverne quelque chose nomme les pare-feux qu'il gouverne, et ceux-ci existent ;
+6. aucun moyen d'authentification ne vient d'ailleurs que de ce paquet ;
+7. un mécanisme allumé est réclamé à la connexion, et ses écrans de retrait sont protégés.
 
-Une quatrième chose se rapporte sans se refuser : les durcissements natifs absents, que
+Une huitième chose se rapporte sans se refuser : les durcissements natifs absents, que
 `authentication-policy:doctor` relève parce que rien d'autre ne les signale.
 
-Il **n'authentifie personne** : il dit ce qui est exigé de qui, et ce qui est posé lui répond.
+Il **n'authentifie personne** : il dit ce qui est exigé de qui, il fabrique les moyens de le
+prouver, et c'est le pare-feu de l'application qui les réclame.
 
-**Il fabrique des mécanismes, et c'est nouveau.** Un mécanisme livré ici — les codes de secours
-aujourd'hui, d'autres demain — s'allume par configuration, et reste éteint tant qu'on ne l'a pas
-demandé : ni écran, ni table, ni service. C'est ce qui permet d'en porter plusieurs sans que le
-paquet n'en impose aucun.
+**Il fabrique les mécanismes, et il les impose.** Le code à six chiffres, les clés de sécurité
+et les codes de secours vivent ici, entiers. Un mécanisme s'allume par configuration et reste
+éteint tant qu'on ne l'a pas demandé : ni écran, ni table, ni service, ni route.
 
-**Le cœur ne cite jamais un mécanisme par son nom.** Il compte des moyens (`Factor`), en réclame,
-et refuse le retrait du dernier. Un mécanisme nouveau implémente ce contrat et se déclare ; rien
-du cœur ne bouge. Une condition écrite sur `backup_codes` ailleurs que dans le mécanisme des
+**Un moyen d'authentification n'est pas un point d'extension.** Une application ne peut pas en
+apporter un : ce qui compte comme protection est vérifié par ce qui l'a écrit, faute de quoi le
+paquet garantirait un compte protégé par un mécanisme dont il ne sait rien. `Factor` est donc
+interne, et une passe refuse toute classe qui l'implémente hors d'ici.
+
+**Le cœur ne cite jamais un mécanisme par son nom.** Il compte des moyens, en réclame, et refuse
+le retrait du dernier. Une condition écrite sur `backup_codes` ailleurs que dans le mécanisme des
 codes de secours est une faute, et c'est la seule règle qui tienne cette promesse.
 
 **Ce qu'un mécanisme livre, il le livre entier** : sa logique, son rangement par défaut, son
-écran. L'écran se remplace fichier par fichier depuis l'application, et son cadre se nomme en
-configuration — un paquet qui imposerait sa mise en page serait un paquet qu'on n'allume pas.
+écran, son étape de connexion et le comportement que le navigateur exécute. Ce qui se remplace,
+c'est l'apparence et le rangement — gabarits, chemins, libellés, service de stockage — jamais la
+vérification.
+
+**Le paquet ne gouverne que ce qu'on lui nomme.** Une application tient souvent deux annuaires,
+et rien de ce qui est promis ici n'a de sens pour une machine. Ce qui n'est pas dans le périmètre
+échappe au verrou, aux durées et aux écrans par construction, et non parce que la politique
+n'exigerait rien de lui.
 
 **L'énumération des réglages est fermée.** Un réglage qu'une application pourrait ajouter
-échapperait aux trois garanties : rien ne dirait qu'il a un plafond, un stockage, ou quelqu'un
-pour l'appliquer.
+échapperait aux garanties : rien ne dirait qu'il a un plafond, un stockage, ou quelqu'un pour
+l'appliquer.
 
 ## Architecture
 
@@ -83,17 +97,29 @@ Le découpage des namespaces est ce qui rend le contrat vérifiable, et `qa/dept
 est la description exécutable.
 
 - **racine `src/`** — le contrat. PHP nu, aucune dépendance, pas même le framework. C'est ce
-  qu'une application importe dans son domaine : la politique, sa résolution, les trois contrats
-  de stockage, et l'attribut de dispense qu'un contrôleur porte.
-- **`DependencyInjection/`** — les quatre passes, le relevé des durcissements natifs, les noms
-  de paramètres, et la reconstruction de la politique depuis ce que le conteneur sait porter.
-  Connaît `symfony/dependency-injection`, et rien d'autre.
-- **`Bridge/`** — les adaptateurs, nommés par ce qu'ils branchent. Tout ce qui connaît une
-  requête, un jeton, une session ou une console vit ici, et nulle part ailleurs.
+  qu'une application importe dans son domaine : la politique, sa résolution, le périmètre, le
+  compte des moyens, les contrats de stockage, et l'attribut de dispense qu'un contrôleur porte.
+- **`Storage/`** — le rangement commun : les tables du paquet, leur préfixe, leur venue au
+  monde, et de quoi tout oublier d'un compte. Connaît Doctrine ; ne connaît aucun mécanisme.
+- **`DependencyInjection/`** — les passes qui refusent, le relevé des durcissements natifs, les
+  noms de paramètres, et la reconstruction de la politique depuis ce que le conteneur sait
+  porter. Connaît `symfony/dependency-injection`, et rien d'autre.
+- **`Bridge/`** — les adaptateurs **du cœur**, nommés par ce qu'ils branchent : le verrou, les
+  durées, le pare-feu courant, les routes, les commandes.
+- **`Mechanism/<Nom>/`** — un moyen livré entier, une couche par mécanisme. Ce qui connaît une
+  technique et ne sert qu'un mécanisme vit avec lui.
 
-**Rien de ce qui est sous `DependencyInjection/` ou `Bridge/` n'est visible depuis la
-racine.** La dépendance ne va que dans un sens : c'est ce qui permet à une
-application de faire entrer le contrat dans son domaine sans y faire entrer Symfony.
+**Tout ce qui connaît une technique et sert le cœur vit dans `Bridge/`. Tout ce qui connaît une
+technique et sert un seul mécanisme vit avec lui.** Aucun mécanisme n'est visible depuis le
+cœur, ni depuis un autre mécanisme.
+
+**Rien de ce qui est sous `DependencyInjection/`, `Bridge/` ou `Mechanism/` n'est visible depuis
+la racine.** La dépendance ne va que dans un sens : c'est ce qui permet à une application de
+faire entrer le contrat dans son domaine sans y faire entrer Symfony.
+
+**Un dossier neuf sous `src/` échappe à toute règle en silence** : Deptrac n'analyse pas ce
+qu'aucune couche ne couvre, et l'analyse reste verte. C'est `debug:unassigned`, joué à l'étape 7,
+qui le relève.
 
 - **Pas de suffixe `Interface`, `Port` ni `Gateway`.** Le contrat nomme le rôle,
   l'implémentation nomme le fournisseur — `RolePolicies` et `DoctrineRolePolicies`.

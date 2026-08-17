@@ -2,24 +2,34 @@
 
 declare(strict_types=1);
 
-use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\BackupCodesController;
-use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SecurityScreenController;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\PolicyRoutes;
+use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 /*
- * La route de l'écran des codes de secours.
+ * Le chargeur de routes du paquet.
  *
- * Importée par l'application, jamais posée d'office : c'est elle qui décide sous quel chemin
- * l'écran vit, et le chemin est ce que les gens retiennent.
+ * L'application l'invoque d'une ligne, et c'est elle qui décide alors sous quels chemins les
+ * écrans vivent :
+ *
+ *     authentication_policy:
+ *         resource: .
+ *         type: authentication_policy
+ *
+ * Un localisateur plutôt qu'un itérateur : lire le nom des écrans ne doit pas les construire,
+ * car chacun réclame de quoi fabriquer des adresses — donc le routeur, donc ce chargeur.
  */
-return static function (RoutingConfigurator $routes): void {
-    $routes->add('authentication_policy_security', '/securite')
-        ->controller(SecurityScreenController::class)
-        ->methods(['GET', 'POST'])
-    ;
-
-    $routes->add('authentication_policy_backup_codes', '/codes-de-secours')
-        ->controller(BackupCodesController::class)
-        ->methods(['GET', 'POST'])
+return static function (ContainerConfigurator $container): void {
+    $container->services()
+        ->set(PolicyRoutes::class)
+            ->args([
+                tagged_locator('authentication_policy.screen', 'key'),
+                param(Parameter::ROUTES),
+                param(Parameter::LOGIN_STEP),
+            ])
+            ->tag('routing.loader')
     ;
 };

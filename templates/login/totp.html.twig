@@ -1,0 +1,56 @@
+{#
+    L'étape de connexion par le code à six chiffres.
+
+    La vérification n'est pas encore l'application : ni navigation, ni raccourcis, et une seule
+    sortie — celle qui permet de repartir quand on n'a pas son téléphone.
+#}
+{% extends layout ?? '@AuthenticationPolicy/login/layout.html.twig' %}
+
+{% block title %}{{ 'factor.totp'|trans({}, 'authentication_policy') }}{% endblock %}
+
+{% block body %}
+<div class="app-stack">
+    <h1>{{ 'factor.totp'|trans({}, 'authentication_policy') }}</h1>
+
+    {% if authenticationError %}
+        <p class="app-alert" data-tone="danger" role="alert">
+            {{ authenticationError|trans(authenticationErrorData, 'SchebTwoFactorBundle') }}
+        </p>
+    {% endif %}
+
+    <div class="app-card app-stack">
+        <p>{{ 'Recopiez le code affiché par votre application d’authentification.'|trans({}, 'authentication_policy') }}</p>
+
+        <form method="post" action="{{ checkPathUrl ?: path(checkPathRoute) }}" class="app-stack">
+            <div class="app-field">
+                <label class="app-field-label" for="_auth_code">{{ 'Le code affiché'|trans({}, 'authentication_policy') }}</label>
+                <input type="text" id="_auth_code" name="{{ authCodeParameterName }}" inputmode="numeric" autocomplete="one-time-code" autofocus required>
+            </div>
+
+            {% if isCsrfProtectionEnabled %}
+                <input type="hidden" name="{{ csrfParameterName }}" value="{{ csrf_token(csrfTokenId) }}">
+            {% endif %}
+
+            <button type="submit" class="app-btn" data-tone="accent" data-block>
+                {{ 'Vérifier'|trans({}, 'authentication_policy') }}
+            </button>
+        </form>
+    </div>
+
+    {% for autre in availableTwoFactorProviders|filter(provider => provider != twoFactorProvider) %}
+        <a href="{{ path('authentication_policy_login', {preferProvider: autre}) }}">
+            {{ ('factor.' ~ autre)|trans({}, 'authentication_policy') }}
+        </a>
+    {% endfor %}
+
+    {% if sortie %}
+        {# Le jeton de sortie ne se transporte pas dans une adresse : il n'est résolu qu'à l'envoi d'un formulaire. #}
+        <form method="post" action="{{ sortie }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+            <button type="submit" class="app-btn" data-variant="ghost" data-size="sm">
+                {{ 'Me déconnecter'|trans({}, 'authentication_policy') }}
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

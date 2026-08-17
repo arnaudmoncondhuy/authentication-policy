@@ -66,6 +66,7 @@ final class SessionLifetimeTest extends TestCase
     private function logIn(): array
     {
         $this->kernel = new PolicyTestKernel([
+            'firewalls' => ['main'],
             'settings' => [
                 'idle_timeout' => ['ceiling' => 3600],
                 'absolute_timeout' => ['ceiling' => 14000],

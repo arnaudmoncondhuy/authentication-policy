@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
-use ArnaudMoncondhuy\AuthenticationPolicy\Factor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -12,14 +12,15 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
 /*
  * Le compte des moyens, tous mécanismes confondus.
  *
- * Importé dès qu'un mécanisme est allumé : sans lui, chacun retirerait son dernier exemplaire
- * sans savoir que le compte n'a rien d'autre.
+ * Importé toujours : il vaut même quand aucun mécanisme n'est allumé, et c'est alors lui qui
+ * répond zéro au verrou.
+ *
+ * Chaque mécanisme se marque dans son propre fichier de services. Rien ne marque un moyen
+ * automatiquement : une classe venue d'ailleurs se ferait compter sans que le paquet réponde de
+ * sa solidité, et RefuseForeignFactorPass arrête la compilation avant cela.
  */
-return static function (Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator $container): void {
+return static function (ContainerConfigurator $container): void {
     $container->services()
-        ->instanceof(Factor::class)
-            ->tag('authentication_policy.factor')
-
         ->set(Factors::class)
             ->args([
                 tagged_iterator('authentication_policy.factor'),
@@ -27,6 +28,6 @@ return static function (Symfony\Component\DependencyInjection\Loader\Configurato
                 // Une application qui n'exige rien laisse chacun retirer ce qu'il veut.
                 param(Parameter::TWO_FACTOR_REQUIRABLE),
             ])
-        ->public()
+            ->public()
     ;
 };

@@ -162,6 +162,18 @@ else
     fi
 fi
 
+# Une classe qui ne tombe dans aucune couche n'est régie par aucune règle, et l'analyse reste
+# verte. C'est la seule faute d'architecture que Deptrac ne dit pas de lui-même : créer un
+# dossier neuf sous src/ suffit à écrire hors de toute contrainte, sans que rien ne l'indique.
+NON_CLASSEES="$(php -d error_reporting="E_ALL&~E_DEPRECATED" vendor/bin/deptrac debug:unassigned \
+    --config-file="$QA_DIR/deptrac.yaml" 2>&1 || true)"
+if ! echo "$NON_CLASSEES" | grep -q 'no unassigned'; then
+    PURETE_EXIT=1
+    echo -e "${RED}✘ Des classes de src/ n'appartiennent à aucune couche :${NC}"
+    echo "$NON_CLASSEES" | sed 's/^/    /'
+    echo -e "  Leur déclarer une couche dans qa/deptrac.yaml, et dire ce qu'elle a le droit de citer."
+fi
+
 php -d error_reporting="E_ALL&~E_DEPRECATED" vendor/bin/deptrac analyse \
     --config-file="$QA_DIR/deptrac.yaml" --no-progress --cache-file=var/deptrac.cache
 ANALYSE_EXIT=$?

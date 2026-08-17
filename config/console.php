@@ -3,11 +3,12 @@
 declare(strict_types=1);
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\DoctorCommand;
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ForgetCommand;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\PolicyCommand;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
-use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
+use ArnaudMoncondhuy\AuthenticationPolicy\Storage\Oblivion;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -31,6 +32,12 @@ return static function (ContainerConfigurator $container): void {
             ])
             ->tag('console.command')
 
+        // L'oubli n'existe que si le paquet range quelque chose ; la commande le dit plutôt que
+        // de disparaître, faute de quoi son absence passerait pour un oubli de sa part.
+        ->set(ForgetCommand::class)
+            ->args([service(Oblivion::class)->nullOnInvalid()])
+            ->tag('console.command')
+
         ->set(DoctorCommand::class)
             ->args([
                 service(Policy::class),
@@ -38,7 +45,9 @@ return static function (ContainerConfigurator $container): void {
                 param(Parameter::ENROLLMENT_PATH),
                 service(RolePolicies::class)->nullOnInvalid(),
                 service(UserPreferences::class)->nullOnInvalid(),
-                service(Enrollment::class)->nullOnInvalid(),
+                param(Parameter::FIREWALLS),
+                param(Parameter::MECHANISMS),
+                param(Parameter::AUTO_SETUP),
             ])
             ->tag('console.command')
     ;

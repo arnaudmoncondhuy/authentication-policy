@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ArnaudMoncondhuy\AuthenticationPolicy;
+namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes;
 
 /**
  * Où les codes de secours d'un compte sont rangés.

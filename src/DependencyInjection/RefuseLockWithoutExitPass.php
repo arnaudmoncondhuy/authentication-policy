@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -19,8 +18,8 @@ use Symfony\Component\DependencyInjection\Exception\LogicException;
  * concerne, sans recours et sans message :
  *
  * - un chemin où les envoyer, faute de quoi le verrou n'a nulle part où renvoyer ;
- * - un service qui sait dire si quelqu'un a posé son second facteur, faute de quoi la question
- *   n'a pas de réponse.
+ * - un mécanisme allumé, faute de quoi il n'existe rien à poser et la page d'enrôlement
+ *   n'annonce que le vide.
  *
  * La faute est de celles qui ne se découvrent qu'en production, sur le compte de la première
  * personne à qui la politique s'applique — souvent un administrateur, c'est-à-dire celui qui ne
@@ -49,11 +48,10 @@ final readonly class RefuseLockWithoutExitPass implements CompilerPassInterface
             ;
         }
 
-        if (!$container->has(Enrollment::class)) {
-            $missing[] = \sprintf(
-                'un service implémentant %s, seul à savoir dire si quelqu\'un a posé son second facteur',
-                Enrollment::class,
-            );
+        if (!$this->anyMechanismEnabled($container)) {
+            $missing[] =
+                'un mécanisme allumé (clé « mechanisms »), sans quoi il n\'existe rien à poser'
+            ;
         }
 
         if ([] !== $missing) {
@@ -70,5 +68,23 @@ final readonly class RefuseLockWithoutExitPass implements CompilerPassInterface
         $path = $container->getParameter(Parameter::ENROLLMENT_PATH);
 
         return \is_string($path) && '' !== $path ? $path : null;
+    }
+
+    private function anyMechanismEnabled(ContainerBuilder $container): bool
+    {
+        if (!$container->hasParameter(Parameter::MECHANISMS)) {
+            return false;
+        }
+
+        /** @var array<string, array{enabled: bool}> $mechanisms */
+        $mechanisms = $container->getParameter(Parameter::MECHANISMS);
+
+        foreach ($mechanisms as $mechanism) {
+            if ($mechanism['enabled']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

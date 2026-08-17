@@ -53,8 +53,21 @@ politique de rôle est une surface comme une autre : c'est de l'autorisation, et
 entièrement à vous.
 *Vérifiable :* la page d'administration des politiques traverse un contrôle de droit.
 
-**10. Le mécanisme lui-même reste à installer.** Le paquet dit que le second facteur est exigé ;
-c'est `scheb/2fa-bundle` qui le demande, et votre pare-feu qui le pose. Une politique qui exige
-sans mécanisme installé verrouille l'application sur une page d'enrôlement qui n'enrôle rien.
-*Vérifiable :* le chemin d'enrôlement rend un écran qui écrit vraiment dans le stockage que
-`Enrollment` relit.
+**10. L'étape de second facteur se pose sur votre pare-feu.** Le paquet fabrique les moyens et
+les vérifie ; c'est `scheb/2fa-bundle` qui les réclame à la connexion, et votre configuration de
+sécurité qui l'y installe. Un mécanisme allumé sans cette étape arrête désormais la compilation,
+avec les lignes exactes à coller.
+*Vérifiable :* le conteneur se compile — c'est la garantie qui le dit.
+
+**11. Supprimer un compte n'efface pas ce que ce paquet range sous son identité.** Aucune clé
+étrangère n'est possible : le paquet ne connaît ni la table des comptes, ni sa clé primaire. Ce
+qu'un compte a posé lui survit, et — c'est le cas dangereux — **recréer un compte sous la même
+identité lui rend le secret, les clés et les codes du précédent**.
+*Vérifiable :* le cas d'usage de suppression de compte appelle `Storage\Oblivion`. Pour ce qui a
+déjà été supprimé sans lui, `authentication-policy:forget <identité>`.
+
+**12. Changer l'identité d'un compte orpheline ses moyens.** Tout est rangé sous ce que le jeton
+porte — souvent une adresse électronique. La changer laisse le compte face au verrou
+d'enrôlement, sans que rien ne l'explique.
+*Vérifiable :* aucune détection automatique. Le cas d'usage qui change l'identité déplace aussi
+ce que le paquet range, ou l'application n'en offre pas la possibilité.

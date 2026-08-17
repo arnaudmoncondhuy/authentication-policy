@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
+use ArnaudMoncondhuy\AuthenticationPolicy\InvalidSettingValue;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\Rule;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
+use ArnaudMoncondhuy\AuthenticationPolicy\UnknownSetting;
 
 /**
  * Rebâtit la politique depuis ce que le conteneur sait porter.
@@ -43,6 +45,44 @@ final class PolicyFactory
         }
 
         return new Policy($built);
+    }
+
+    /**
+     * Valide et normalise ce que la configuration pose sur les rôles.
+     *
+     * Le contrôle a lieu ici, à la compilation, et pas à la lecture : un réglage mal écrit sur
+     * un rôle ne se manifesterait autrement que sur le compte de qui le porte, en retombant
+     * silencieusement sur le niveau précédent.
+     *
+     * @param array<string, mixed> $policies
+     *
+     * @return array<string, array<string, bool|int>>
+     */
+    public static function rolePoliciesFromArray(array $policies): array
+    {
+        $built = [];
+
+        foreach ($policies as $role => $values) {
+            if (!\is_array($values)) {
+                throw new \InvalidArgumentException(\sprintf('Le rôle « %s » doit poser une liste de réglages.', $role));
+            }
+
+            $built[$role] = [];
+
+            foreach ($values as $id => $value) {
+                try {
+                    $setting = Setting::ofId((string) $id);
+                    $setting->kind()->refuseForeignValue($value);
+                } catch (UnknownSetting|InvalidSettingValue $refusal) {
+                    throw new \InvalidArgumentException(\sprintf('Le rôle « %s » pose « %s » : %s', $role, $id, $refusal->getMessage()), previous: $refusal);
+                }
+
+                /* @var bool|int $value */
+                $built[$role][$setting->value] = $value;
+            }
+        }
+
+        return $built;
     }
 
     private function __construct()

@@ -1,175 +1,153 @@
 # arnaudmoncondhuy/authentication-policy
 
-À quel point faut-il prouver que c'est bien soi. La politique se déclare **une fois**, le
-conteneur refuse de compiler ce qui la contournerait, et le verrou d'enrôlement est **fermé par
-défaut**.
+À quel point faut-il prouver que c'est bien soi. La politique se déclare une fois, le paquet
+fabrique les moyens de la tenir, et le conteneur refuse de compiler ce qui la contournerait.
 
 ```yaml
 # config/packages/authentication_policy.yaml
 authentication_policy:
-    enrollment_path: /profil/second-facteur
+    firewalls: [main]
+    enrollment_path: /securite
 
-    settings:
-        two_factor:
-            ceiling: false          # personne n'y est tenu d'office…
-            delegated_to: [role, user]   # …mais un rôle peut l'exiger, et chacun peut se l'imposer
-
-        idle_timeout:
-            ceiling: 28800          # huit heures, et jamais davantage
-            delegated_to: [role, user]   # un rôle peut écourter, une personne encore
-
-        remember_me:
-            ceiling: true
-            delegated_to: [role]    # un rôle peut l'interdire, jamais le rétablir
+    mechanisms:
+        totp:
+            enabled: true
+            issuer: Mon application
 ```
 
-Le paquet **n'authentifie personne** : Symfony et `scheb/2fa-bundle` le font. Il décide ce qui
-est exigé de qui, et empêche d'oublier la réponse au projet suivant.
+Trois lignes de plus dans l'application, et rien d'autre :
+
+```yaml
+# config/packages/security.yaml — dans le pare-feu concerné
+            two_factor:
+                auth_form_path: authentication_policy_login
+                check_path: authentication_policy_login_check
+```
+```yaml
+# config/routes.yaml
+authentication_policy:
+    resource: .
+    type: authentication_policy
+```
+
+Aucune classe à écrire, aucun gabarit à copier, aucune table à migrer. Les écrans, l'étape de
+connexion, le rangement et le comportement du navigateur viennent du paquet.
 
 ## Ce que le paquet garantit
 
-Trois règles, et chacune **arrête la compilation du conteneur**. Pas un contrôle d'intégration
-continue qu'on peut contourner : l'application ne démarre pas, y compris sur le poste de qui a
-écrit la faute.
+Sept garanties, et chacune arrête la compilation du conteneur — pas la requête, pas le test :
+la compilation, y compris sur le poste de qui vient de l'écrire.
 
-| Règle | Ce qu'elle empêche |
+| Ce qui est refusé | Pourquoi ça ne se verrait pas autrement |
 |---|---|
-| **Le verrou est fermé par défaut** | la page atteinte sans avoir posé le second facteur qu'un rôle exige — y compris celle qu'on écrira demain, puisque personne n'a rien à y déclarer |
-| **Une dispense se pose sur une porte** | la dispense qui n'ouvre rien, et laisse croire qu'une page reste joignable pendant l'enrôlement |
-| **Un verrou qui se ferme a une sortie** | l'application fermée à ses propres administrateurs, sans page d'enrôlement où les envoyer |
-| **Ce qui est délégué a un stockage** | le champ qu'un écran de profil affiche, que quelqu'un règle, et que rien n'enregistre |
-| **Une durée déléguée a un plafond** | le rôle qui pose trente jours là où on croyait avoir écrit huit heures |
+| Un verrou qui peut se fermer sans chemin de sortie ni mécanisme allumé | Le premier compte concerné n'atteint plus aucune page, souvent un administrateur |
+| Un niveau délégué sans stockage | L'écran propose un choix, personne ne l'enregistre, et la valeur retombe en silence |
+| Une durée déléguée sans plafond | Le niveau délégué devient la politique |
+| Un paquet qui gouverne sans périmètre, ou nomme un pare-feu inexistant | Tout paraît en place et rien ne s'applique |
+| Un moyen d'authentification venu d'ailleurs | Le paquet garantirait un compte protégé par un mécanisme dont il ne sait rien |
+| Un mécanisme allumé que rien ne réclame à la connexion | Les moyens se posent, se comptent, ouvrent le verrou — et personne ne les demande |
+| Un écran qui retire un moyen sans jeton pour le protéger | Une page visitée ailleurs peut périmer une série de codes |
 
-Une quatrième chose ne se refuse pas et se rapporte : `authentication-policy:doctor` relève les
-durcissements natifs absents — limitation des tentatives, attributs du cookie de session. Aucun
-ne casse quoi que ce soit par son absence, et c'est bien le problème.
+Une huitième chose se rapporte sans se refuser : les durcissements natifs absents — limitation
+des tentatives, attributs du cookie de session — que `authentication-policy:doctor` relève parce
+que rien d'autre ne les signale.
+
+## Le périmètre : ce paquet ne gouverne que ce qu'on lui nomme
+
+Une application tient souvent deux annuaires : les personnes d'un côté, les machines de l'autre.
+Rien de ce que ce paquet promet n'a de sens pour une machine — elle ne pose pas de second
+facteur, ne choisit pas la durée de sa session, et le verrou la mettrait dehors sans porte.
+
+`firewalls` nomme les pare-feux des personnes. Ce qui n'y figure pas échappe à tout, **par
+construction** : une politique qui n'exigerait rien des machines produirait le même résultat,
+mais par accident — et cesserait de protéger le jour où on la resserre.
 
 ## Un niveau ne peut que resserrer
 
-La configuration parle, puis les rôles, puis la personne. **Cette règle n'est pas un contrôle
-qu'on pourrait retirer : elle est indisponible.** Chaque nature de réglage sait replier deux
-valeurs en gardant la plus stricte, et il n'existe aucun chemin de code qui remonte.
+Trois niveaux parlent, dans cet ordre : la configuration, le rôle, la personne. Chacun ne peut
+que resserrer ce que le précédent a posé — ce n'est pas une consigne, la résolution ne sait pas
+faire l'inverse.
 
-| Nature | Plus strict veut dire | Exemple |
-|---|---|---|
-| exigence | vrai | `two_factor`, `backup_codes` |
-| permission | faux | `trusted_device`, `remember_me` |
-| durée | court | `idle_timeout`, `absolute_timeout` |
+```yaml
+    settings:
+        two_factor:
+            ceiling: false             # non exigé par défaut…
+            delegated_to: [role, user] # …mais un rôle ou la personne peut l'exiger
 
-Conséquence directe : plusieurs rôles portés par la même personne se replient au plus strict,
-**quel que soit leur ordre**. Le contrat interroge un rôle à la fois précisément pour que cet
-arbitrage n'appartienne jamais au projet.
-
-## Ce qu'une décision porte
-
-Une valeur seule oblige l'écran à redevenir la politique. `Decision` porte les trois choses
-qu'un écran de profil demande :
-
-```php
-$decision = $decisions->of(Setting::IdleTimeout);
-
-$decision->seconds();       // 28800
-$decision->decidedBy;       // Decider::Role
-$decision->locked;          // false — on peut encore écourter
-$decision->explanation();   // « Décidé par le rôle, et vous pouvez encore resserrer. »
+    role_policies:
+        ROLE_ADMIN:
+            two_factor: true           # validé à la compilation, avec le nom du rôle fautif
 ```
 
-Sans `decidedBy`, une case grisée n'a pas d'explication — et c'est là que naît la douleur :
-quelqu'un qui ne comprend pas pourquoi il ne peut rien changer finit par demander qu'on lui
-ouvre.
+Ce qui est retenu n'est pas ce qui s'applique : un choix plus large que le plafond reste rangé
+tel quel, et la résolution le ramène — c'est ce qui permet de desserrer la politique plus tard
+sans redemander à chacun ce qu'il voulait.
 
 ## Le verrou, et sa seule échappatoire
 
 Tant que la politique exige un second facteur que quelqu'un n'a pas posé, **aucune surface ne
-lui répond**. Ce qui doit rester joignable le déclare, avec sa raison :
+lui répond**. Fermé par défaut : une route ajoutée demain est verrouillée sans que personne y
+pense, parce que personne n'a eu à y penser.
+
+Ce qui doit rester joignable pendant l'enrôlement le déclare :
 
 ```php
 #[DuringEnrollment('Affiche le QR code du second facteur.')]
-final class EnrollmentController
-{
-}
+final class SecondFactorController { }
 ```
 
-La raison est obligatoire : chaque dispense est une ligne du verrou en moins, et elle se relit à
-chaque revue. Posée ailleurs que sur une porte — contrôleur, commande, consommateur de message —
-elle arrête la compilation.
+Une dispense posée là où elle ne produirait rien — sur une classe qui n'est pas une porte
+d'entrée — arrête la compilation.
 
-## Ce que le paquet ne fait pas
+## Les mécanismes
 
-**Il ne stocke rien.** Trois contrats, que le projet implémente comme il veut — Doctrine, un
-fichier, un annuaire distant, une clé Redis. Le paquet ne le saura jamais.
+Trois, livrés entiers, éteints tant qu'on ne les allume pas :
 
-| Contrat | Ce qu'il répond |
+| Mécanisme | Ce qu'il apporte |
 |---|---|
-| `RolePolicies` | ce que l'administration a posé sur **un** rôle |
-| `UserPreferences` | ce qu'une personne a choisi pour elle-même |
-| `Enrollment` | si quelqu'un a posé ce que la politique exige de lui |
+| `totp` | Le code à six chiffres d'une application d'authentification. QR code si `endroid/qr-code` est là, secret en toutes lettres sinon. Un secret non confirmé ne compte pas. |
+| `security_key` | Clé physique, empreinte, visage, code de l'appareil — une seule norme. Le comportement du navigateur vient du paquet. |
+| `backup_codes` | Dix codes à noter, pour entrer quand tout le reste est perdu. Un code ne sert qu'une fois. |
 
-**Il fabrique les mécanismes qu'on lui demande, et aucun autre.** Les codes de secours sont
-livrés avec le paquet — logique, rangement, écran — et restent éteints tant que la configuration
-ne les allume pas. Le second facteur par application ou par clé reste au mécanisme installé, qui
-se déclare au paquet pour être compté. `authentication-policy:doctor` distingue explicitement ce
-que le paquet applique de ce qu'il se contente de résoudre — sans quoi on croit tenu ce qui ne
-l'est pas.
+**Aucun ne se remplace.** Une application ne peut pas apporter le sien : ce qui compte comme
+protection est vérifié par ce qui l'a écrit. Ce qui se remplace, c'est l'apparence et le
+rangement.
 
-**Le cœur ne connaît que des moyens, jamais leurs noms.** Il en compte, en exige, et refuse le
-retrait du dernier : un compte qui n'a plus rien à présenter ne se dépanne depuis aucun écran.
+```yaml
+    mechanisms:
+        security_key:
+            enabled: true
+            relying_party_name: Mon application   # obligatoire : le navigateur refuse sans
+            relying_party_id: '%env(WEBAUTHN_RP_ID)%'
+            store: 'App\Security\NosCles'         # facultatif : le rangement du projet
+```
 
-**Il ne couvre pas l'aspiration de masse.** Une identité légitime qui extrait cent mille dossiers
-ne relève pas de l'authentification. C'est du plafonnement de lecture, et c'est ailleurs.
+Un mécanisme allumé range dans une table préfixée que le paquet crée au premier usage. Là où le
+compte de base de données n'a pas à posséder le schéma, `storage.auto_setup: false` rend la main
+aux migrations du projet, et `doctor` dit ce qui manque.
 
-**Il ne décide pas qui a le droit de changer un réglage.** C'est de l'autorisation, et les deux
-paquets restent indépendants.
+⚠️ Le préfixe des tables doit être exclu du filtre de schéma de l'application, faute de quoi
+`doctrine:migrations:diff` proposera de **supprimer** ce qu'aucune entité ne décrit :
+
+```yaml
+# config/packages/doctrine.yaml
+        schema_filter: '~^(?!authentication_)~'
+```
 
 ## Un écran, tous les moyens
 
-`/securite` montre ce qui protège le compte, ce qui lui manque, et mène là où chaque moyen se
-règle — sur le modèle des pages de sécurité qu'on connaît. Il existe dès l'installation, même
-sans aucun mécanisme allumé : c'est là qu'il a le plus à dire.
+`/securite` montre ce qui protège le compte, ce qui lui manque, et la durée de ses sessions.
+Aucun mécanisme n'y est nommé : l'écran affiche ce que les moyens installés déclarent.
 
-**La durée des sessions y figure aussi**, et s'y règle quand la politique la délègue à chacun.
-C'est le paquet qui la décide et l'applique ; il n'y avait pas de raison qu'une application
-réécrive l'écran qui la montre.
-
-Il ne nomme aucun mécanisme : il affiche ce que les moyens installés déclarent. Un moyen écrit
-par l'application y figure au même titre que ceux du paquet, sans rien avoir à inscrire nulle
-part — il suffit qu'il implémente `Factor`.
-
-```php
-final class TotpFactor implements Factor
-{
-    public function name(): string { return 'totp'; }
-    public function countFor(string $user): int { /* … */ }
-    public function manageAt(): string { return 'ma_route_totp'; }
-    public function isRecovery(): bool { return false; }
-}
-```
-
-Les mots viennent du catalogue `authentication_policy` : `factor.totp` pour le nom,
-`factor.totp.state` pour l'état affiché.
-
-## Les codes de secours
-
-Le filet : de quoi entrer quand tout le reste est perdu. Dix codes, chacun bon une fois, rendus
-une seule fois à l'écran — après quoi seule leur empreinte subsiste.
+Deux voies de surcharge, cumulables. La clé `templates.<écran>` nomme un autre gabarit ; un
+fichier du même nom dans `templates/bundles/AuthenticationPolicyBundle/` en remplace un sans rien
+configurer. La clé l'emporte quand les deux existent. Les chemins se décident de même :
 
 ```yaml
-authentication_policy:
-    layout: 'base.html.twig'   # le cadre de tous les écrans du paquet ; absent, il en fournit un nu
-
-    backup_codes:
-        enabled: true
+    routes:
+        prefix: /mon-compte
+        security_key: /mes-cles
 ```
-
-```yaml
-# config/routes.yaml
-authentication_policy:
-    resource: '@AuthenticationPolicyBundle/config/routes.php'
-```
-
-Rien d'autre : la table se crée au premier usage, l'écran est monté, et le retrait de la série
-est refusé tant qu'elle est le dernier moyen d'entrer. Pour ranger les codes ailleurs, nommez
-votre service dans `store` ; pour tenir la table vous-même, coupez `auto_setup`.
 
 ## Installation
 
@@ -177,74 +155,56 @@ votre service dans `store` ; pour tenir la table vous-même, coupez `auto_setup`
 composer require arnaudmoncondhuy/authentication-policy
 ```
 
-Pas de recette Flex, mais le type `symfony-bundle` suffit : Flex enregistre seul le bundle dans
-`config/bundles.php`.
+Pas de recette Flex ; le type `symfony-bundle` suffit. Le paquet s'installe sans configuration :
+chaque réglage garde alors sa valeur la plus permissive, aucun mécanisme n'existe, rien ne
+change.
 
-**Le paquet s'installe sans qu'on écrive quoi que ce soit.** Sans configuration, chaque réglage
-garde sa valeur la plus permissive, aucun verrou ne se ferme, et rien ne change. Ce qui est
-exigé l'est parce qu'on l'a écrit.
-
-Le montage complet — les trois contrats, l'écran de profil, le compte de service — est dans
-[docs/montage.md](docs/montage.md).
+Selon ce qu'on allume : `scheb/2fa-bundle` (dès qu'un mécanisme est allumé),
+`spomky-labs/otphp` (code à six chiffres), `web-auth/webauthn-lib` (clés), `doctrine/dbal` (le
+rangement du paquet), `endroid/qr-code` (le QR code plutôt que le secret en toutes lettres),
+`symfony/stimulus-bundle` (le comportement des clés, qui arrive alors sans une ligne à écrire).
 
 ## Les deux commandes
 
-```
-authentication-policy:policy --role=ROLE_ADMIN
-```
+`authentication-policy:policy` affiche la politique résolue, avec l'option `--role` pour la voir
+telle qu'un rôle la subit.
 
-Ce que la configuration déclare, et ce qu'un rôle reçoit une fois la résolution jouée. Sans
-elle, connaître la politique d'un rôle demande de lire un fichier, une table, et de replier les
-deux de tête — faisable une fois, jamais à chaque revue.
-
-```
-authentication-policy:doctor
-```
-
-Le verrou et sa sortie, les stockages branchés, ce qui est résolu ici mais appliqué par le
-projet, et les durcissements natifs absents. **Elle échoue** plutôt que d'afficher : une routine
-qualité ne peut s'appuyer que sur ce qui rend un code de sortie.
+`authentication-policy:doctor` examine l'installation : le périmètre, les mécanismes allumés, le
+verrou, les stockages, et les durcissements natifs absents. Elle **échoue** plutôt que d'afficher
+— une routine qualité ne peut s'appuyer que sur un code de sortie.
 
 ## Les réglages
 
 | Réglage | Nature | Appliqué par |
 |---|---|---|
-| `two_factor` | exigence | le paquet — c'est le verrou |
-| `idle_timeout` | durée | le paquet |
-| `absolute_timeout` | durée | le paquet |
+| `two_factor` | exigence | le paquet |
 | `backup_codes` | exigence | le projet |
 | `trusted_device` | permission | le projet |
 | `remember_me` | permission | le projet |
+| `idle_timeout` | durée | le paquet |
+| `absolute_timeout` | durée | le paquet |
 
-L'énumération est fermée. Un paquet qui laisserait ajouter des réglages ne pourrait plus rien
-garantir sur eux — ni qu'ils ont un plafond, ni qu'ils ont un stockage, ni que quelqu'un les
-applique.
+L'énumération est fermée : un réglage qu'une application ajouterait échapperait aux garanties.
 
 ## Ce qui reste au projet
 
-Le paquet livre le mécanisme, jamais les garanties d'ensemble : le journal des connexions, la
-liste des sessions actives, l'expiration des clés de service, l'écran de profil et celui
-d'administration vous appartiennent. La liste tenue à jour est dans
-[docs/ce-qui-reste-au-projet.md](docs/ce-qui-reste-au-projet.md), et
-[docs/risques.md](docs/risques.md) dit ce que le dispositif couvre et ce qu'il ne couvre pas.
+Son entité de comptes, ses pare-feux, et les trois lignes de configuration ci-dessus. Rien
+d'autre.
+
+Ce que le paquet ne peut pas faire à sa place est écrit dans `docs/ce-qui-reste-au-projet.md` —
+notamment : **supprimer un compte n'efface pas ce que ce paquet range sous son identité**, et
+recréer le même identifiant lui rendrait les moyens de l'ancien. Le service `Oblivion` et la
+commande `authentication-policy:forget` existent pour cela.
 
 ## Compatibilité
 
-PHP 8.4+, Symfony 7.3+ et 8.x. Aucune dépendance hors Symfony et PSR-20.
+PHP 8.4+, Symfony 7.3+ et 8.x. Le contrat n'a aucune dépendance hors Symfony et PSR-20 ; les
+mécanismes apportent les leurs, et ne sont montés que s'ils sont allumés.
 
 ## Version
 
-**0.x — le paquet marche, il n'est pas éprouvé.** La distinction n'est pas de la modestie.
-Depuis le 17/08/2026, il tourne dans une première application réelle, avec de vrais comptes et
-deux mécanismes de second facteur branchés derrière — une application d'authentification et des
-clés. Il en manque une seconde, et c'est elle qui dira ce qui ne se voit pas d'ici.
+**0.x — le paquet marche, il n'est pas éprouvé.** Tant que le numéro commence par un zéro, la
+surface publique peut bouger.
 
-Tant que le numéro commence par un zéro, **la surface publique peut bouger** — les six contrats
-compris. Deux conditions pour le 1.0, et pas une de moins :
-
-- avoir tourné dans **deux applications réelles**, avec un mécanisme de second facteur branché ;
-- que chacune ait reversé sa règle enfreinte dans
-  [docs/ce-qui-reste-au-projet.md](docs/ce-qui-reste-au-projet.md).
-
-C'est cette seconde condition qui compte. Un paquet correct devient un paquet qui prévient le
-jour où il a vu quelqu'un se tromper pour de bon.
+Deux conditions pour le 1.0 : avoir tourné dans deux applications réelles, et que chacune ait
+reversé sa règle enfreinte dans `docs/ce-qui-reste-au-projet.md`.

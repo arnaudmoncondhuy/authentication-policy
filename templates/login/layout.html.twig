@@ -1,0 +1,18 @@
+{#
+    Le cadre de repli de l'étape de connexion, volontairement nu.
+
+    Séparé de celui des écrans de réglage : à ce moment-là, la personne n'a pas fini d'entrer.
+    Lui montrer une navigation vers des pages qu'elle ne peut pas atteindre n'aide personne.
+    Nommer son propre gabarit dans la clé `templates.login_layout` suffit à ne plus passer ici.
+#}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|default('fr') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Unit;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\BackupCodes;
-use ArnaudMoncondhuy\AuthenticationPolicy\BackupCodeStore;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
+use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes\BackupCodes;
+use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes\BackupCodeStore;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
 use PHPUnit\Framework\TestCase;
 

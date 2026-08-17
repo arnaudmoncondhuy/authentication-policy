@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Kernel;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\AuthenticationPolicyBundle;
-use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
-use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
-use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\ApplicationFactor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
-use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
-use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryEnrollment;
-use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryRolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\EnrollmentController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\GuardedController;
+use Doctrine\DBAL\DriverManager;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -34,16 +29,23 @@ final class PolicyTestKernel extends Kernel
 {
     use MicroKernelTrait;
 
+    /** Le nom sous lequel les cas nomment la connexion, dans `storage.connection`. */
+    public const string CONNECTION = 'test.connection';
+
     /**
-     * @param array<string, mixed> $policy   la configuration du bundle, telle qu'on l'écrirait
-     * @param bool                 $stores   branche les contrats que la politique réclame
-     * @param list<string>         $enrolled qui a déjà posé son second facteur
+     * @param array<string, mixed> $policy         la configuration du bundle, telle qu'on l'écrirait
+     * @param bool                 $ranged         monte une base en mémoire pour le rangement du paquet
+     * @param bool                 $secondFirewall ajoute une entrée de machines, hors périmètre
+     * @param list<class-string>   $extra          des services à enregistrer, pour éprouver un refus
+     * @param bool                 $twoFactorStep  pose l'étape de second facteur sur le pare-feu
      */
     public function __construct(
         private readonly array $policy = [],
-        private readonly bool $stores = true,
-        private readonly array $enrolled = [],
+        private readonly bool $ranged = false,
         private readonly bool $twig = false,
+        private readonly bool $secondFirewall = false,
+        private readonly array $extra = [],
+        private readonly bool $twoFactorStep = true,
     ) {
         // Hors mode debug : le noyau y écrirait chaque événement notifié sur la sortie d'erreur,
         // et la routine qualité deviendrait illisible. Ce que le debug apporte — reconstruire le
@@ -58,6 +60,13 @@ final class PolicyTestKernel extends Kernel
         yield new SecurityBundle();
         if ($this->twig) {
             yield new \Symfony\Bundle\TwigBundle\TwigBundle();
+        }
+
+        // L'étape de second facteur ne vient pas de ce paquet : elle vient de scheb, comme dans
+        // toute application réelle. Sans elle, un mécanisme allumé se poserait sans que rien ne
+        // le réclame à la connexion — ce qu'une passe refuse.
+        if ($this->anyMechanismEnabled()) {
+            yield new \Scheb\TwoFactorBundle\SchebTwoFactorBundle();
         }
 
         yield new AuthenticationPolicyBundle();
@@ -75,7 +84,10 @@ final class PolicyTestKernel extends Kernel
         return \sprintf(
             '%s/authentication-policy-tests/%s',
             sys_get_temp_dir(),
-            hash('xxh128', serialize([$this->policy, $this->stores, $this->enrolled, self::sourceStamp()])),
+            hash('xxh128', serialize([
+                $this->policy, $this->ranged, $this->twig, $this->secondFirewall, $this->extra,
+                self::sourceStamp(),
+            ])),
         );
     }
 
@@ -94,27 +106,59 @@ final class PolicyTestKernel extends Kernel
             'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
         ]);
 
+        $firewalls = ['main' => [
+            'pattern' => '^/',
+            'provider' => 'memoire',
+            // Comme toute application réelle : le pare-feu ne charge le jeton que si quelqu'un
+            // le lit.
+            'lazy' => true,
+            'http_basic' => true,
+            'login_throttling' => ['max_attempts' => 5],
+        ]];
+
+        if ($this->twoFactorStep && $this->anyMechanismEnabled()) {
+            $firewalls['main']['two_factor'] = [
+                'auth_form_path' => 'authentication_policy_login',
+                'check_path' => 'authentication_policy_login_check',
+            ];
+        }
+
+        if ($this->secondFirewall) {
+            // L'entrée des machines : un pare-feu que le périmètre ne nomme pas. Il est déclaré
+            // avant `main`, comme dans une application réelle où le motif le plus étroit passe
+            // en premier.
+            $firewalls = ['machines' => [
+                'pattern' => '^/api',
+                'provider' => 'memoire',
+                'stateless' => true,
+                'http_basic' => true,
+            ]] + $firewalls;
+        }
+
         $container->loadFromExtension('security', [
             'password_hashers' => ['Symfony\Component\Security\Core\User\InMemoryUser' => ['algorithm' => 'plaintext']],
             'providers' => ['memoire' => ['memory' => ['users' => [
                 'arnaud' => ['password' => 'secret', 'roles' => ['ROLE_ADMIN']],
             ]]]],
-            'firewalls' => ['main' => [
-                'pattern' => '^/',
-                'provider' => 'memoire',
-                // Comme toute application réelle : le pare-feu ne charge le jeton que si
-                // quelqu'un le lit.
-                'lazy' => true,
-                'http_basic' => true,
-                'login_throttling' => ['max_attempts' => 5],
-            ]],
+            'firewalls' => $firewalls,
             'access_control' => [['path' => '^/', 'roles' => 'PUBLIC_ACCESS']],
         ]);
 
         if ($this->twig) {
             $container->loadFromExtension('twig', ['default_path' => __DIR__.'/../Fixture/Web/templates']);
-            $container->register(InMemoryBackupCodeStore::class)->setPublic(true);
-            $container->register(ApplicationFactor::class)->setPublic(true)->setAutoconfigured(true);
+        }
+
+        if ($this->ranged) {
+            // Une base en mémoire : les tables du paquet s'y créent seules, et disparaissent
+            // avec le noyau.
+            $container->register(self::CONNECTION, \Doctrine\DBAL\Connection::class)
+                ->setFactory([DriverManager::class, 'getConnection'])
+                ->setArguments([['driver' => 'pdo_sqlite', 'memory' => true]])
+                ->setPublic(true);
+        }
+
+        foreach ($this->extra as $class) {
+            $container->register($class)->setPublic(true);
         }
 
         $container->loadFromExtension('authentication_policy', $this->policy);
@@ -130,17 +174,6 @@ final class PolicyTestKernel extends Kernel
         $container->register(EnrollmentController::class)
             ->setPublic(true)
             ->addTag('controller.service_arguments');
-
-        if (!$this->stores) {
-            return;
-        }
-
-        $container->register(InMemoryRolePolicies::class)
-            ->setArguments([['ROLE_ADMIN' => ['two_factor' => true]]]);
-        $container->setAlias(RolePolicies::class, InMemoryRolePolicies::class);
-
-        $container->register(InMemoryEnrollment::class)->setArguments([$this->enrolled]);
-        $container->setAlias(Enrollment::class, InMemoryEnrollment::class);
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void
@@ -148,12 +181,26 @@ final class PolicyTestKernel extends Kernel
         $routes->add('page', '/une-page')->controller(GuardedController::class);
         $routes->add('enrolement', '/enrolement')->controller(EnrollmentController::class);
 
-        if ($this->twig) {
-            $routes->import(__DIR__.'/../../config/routes.php');
+        if ($this->secondFirewall) {
+            $routes->add('machine', '/api/etat')->controller(GuardedController::class);
         }
 
-        // Le moyen que l'application déclare mène quelque part, comme n'importe quel autre.
-        $routes->add('page_du_moyen', '/le-moyen')->controller(GuardedController::class);
+        // Les écrans du paquet prennent leurs chemins ici, comme dans une application.
+        $routes->import('.', 'authentication_policy');
+    }
+
+    private function anyMechanismEnabled(): bool
+    {
+        /** @var array<string, array{enabled?: bool}> $mechanisms */
+        $mechanisms = $this->policy['mechanisms'] ?? [];
+
+        foreach ($mechanisms as $mechanism) {
+            if (true === ($mechanism['enabled'] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** La date de la source la plus récemment modifiée du paquet. */

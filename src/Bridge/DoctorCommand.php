@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Bridge;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
-use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
@@ -20,19 +19,21 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Examine une installation, et dit ce que personne d'autre ne dira.
  *
  * Les passes de compilation tiennent ce qui est démontrable : une délégation sans stockage, un
- * verrou sans sortie, une durée sans plafond. Restent trois choses qu'aucune d'elles ne peut
- * refuser, parce qu'aucune n'est une faute — et que toutes se paient plus tard.
+ * verrou sans sortie, une durée sans plafond, un mécanisme que rien ne demande à la connexion.
+ * Restent des choses qu'aucune d'elles ne peut refuser, parce qu'aucune n'est une faute — et
+ * que toutes se paient plus tard.
  *
  * **Les durcissements sans bouton.** La limitation des tentatives et les attributs du cookie de
  * session n'appartiennent pas à ce paquet, ne cassent rien par leur absence, et ne s'écrivent
  * dans aucun journal. Ils s'oublient donc, et c'est ici qu'on les voit.
  *
- * **Les réglages que ce paquet résout sans les appliquer.** Une politique peut exiger des codes
- * de secours ; c'est le projet qui refuse d'entrer sans eux. La distinction est invisible à la
- * lecture de la configuration, et c'est exactement là qu'on croit tenu ce qui ne l'est pas.
+ * **Les réglages que ce paquet résout sans les appliquer.** Une politique peut permettre un
+ * appareil de confiance ; c'est le projet qui en tire les conséquences. La distinction est
+ * invisible à la lecture de la configuration, et c'est exactement là qu'on croit tenu ce qui ne
+ * l'est pas.
  *
- * **Ce qui ne s'applique qu'à la prochaine connexion.** Les durées de session sont résolues à
- * l'ouverture : les sessions déjà ouvertes gardent les leurs.
+ * **Les tables que personne n'a migrées.** Quand la création au premier usage est coupée, une
+ * table oubliée ne se découvre qu'au premier compte qui essaie, et pour lui seul.
  *
  * Elle échoue plutôt que d'afficher : une routine qualité ne peut s'appuyer que sur ce qui rend
  * un code de sortie.
@@ -43,14 +44,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class DoctorCommand extends Command
 {
-    /** @param list<string> $findings */
+    /**
+     * @param list<string>                        $findings
+     * @param list<string>                        $firewalls
+     * @param array<string, array{enabled: bool}> $mechanisms
+     */
     public function __construct(
         private readonly Policy $policy,
         private readonly array $findings = [],
         private readonly ?string $enrollmentPath = null,
         private readonly ?RolePolicies $roles = null,
         private readonly ?UserPreferences $preferences = null,
-        private readonly ?Enrollment $enrollment = null,
+        private readonly array $firewalls = [],
+        private readonly array $mechanisms = [],
+        private readonly bool $autoSetup = true,
     ) {
         parent::__construct();
     }
@@ -59,11 +66,40 @@ final class DoctorCommand extends Command
     {
         $console = new SymfonyStyle($input, $output);
 
+        $this->reportThePerimeter($console);
+        $this->reportTheMechanisms($console);
         $this->reportTheLock($console);
         $this->reportTheStores($console);
         $this->reportWhoEnforces($console);
 
         return $this->reportHardenedDefaults($console);
+    }
+
+    private function reportThePerimeter(SymfonyStyle $console): void
+    {
+        $console->section('Le périmètre');
+
+        $console->writeln([] === $this->firewalls
+            ? 'Aucun pare-feu confié : ce paquet ne gouverne rien.'
+            : 'Pare-feux gouvernés : '.implode(', ', $this->firewalls).'. Tout le reste lui échappe, par construction.');
+    }
+
+    private function reportTheMechanisms(SymfonyStyle $console): void
+    {
+        $console->section('Les moyens fabriqués');
+
+        $enabled = $this->enabledMechanisms();
+
+        if ([] === $enabled) {
+            $console->writeln('Aucun. Personne ne peut poser de second facteur.');
+
+            return;
+        }
+
+        $console->writeln('Allumés : '.implode(', ', $enabled).'.');
+        $console->writeln($this->autoSetup
+            ? 'Leurs tables se créent au premier usage.'
+            : 'Leurs tables sont tenues par vos migrations : une table oubliée ne se verra qu\'au premier compte qui essaie.');
     }
 
     private function reportTheLock(SymfonyStyle $console): void
@@ -77,10 +113,8 @@ final class DoctorCommand extends Command
         }
 
         $console->writeln(\sprintf(
-            "Fermé par défaut. Une porte non dispensée renvoie vers %s.\n"
-            .'Le service qui dit si quelqu\'un a posé son second facteur : %s.',
+            'Fermé par défaut. Une porte non dispensée renvoie vers %s.',
             $this->enrollmentPath ?? '(aucun chemin)',
-            null === $this->enrollment ? 'aucun' : $this->enrollment::class,
         ));
     }
 
@@ -121,7 +155,7 @@ final class DoctorCommand extends Command
 
         $console->section('Résolus ici, appliqués par vous');
         $console->writeln(
-            "Ce paquet dit ce qui est exigé, il ne fabrique aucun mécanisme. Ces réglages n'ont d'effet\n"
+            "Ce paquet dit ce qui est exigé, il ne fabrique pas tout. Ces réglages n'ont d'effet\n"
             ."que si le code du projet les lit et en tire les conséquences :\n  - "
             .implode("\n  - ", $delegated)
         );
@@ -144,6 +178,20 @@ final class DoctorCommand extends Command
         $console->error('Ces durcissements natifs manquent. Aucun ne casse quoi que ce soit par son absence.');
 
         return Command::FAILURE;
+    }
+
+    /** @return list<string> */
+    private function enabledMechanisms(): array
+    {
+        $enabled = [];
+
+        foreach ($this->mechanisms as $name => $mechanism) {
+            if ($mechanism['enabled']) {
+                $enabled[] = $name;
+            }
+        }
+
+        return $enabled;
     }
 
     /** @param list<Setting> $settings */

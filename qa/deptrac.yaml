@@ -1,7 +1,12 @@
 # Les couches du paquet, et le sens dans lequel elles ont le droit de se connaître.
 #
-# Ce fichier tient la promesse centrale du paquet : le contrat entre dans le domaine d'une
-# application sans y faire entrer Symfony. Il ne le tient que si `Contract` ne cite personne.
+# Ce fichier tient deux promesses. Le contrat entre dans le domaine d'une application sans y
+# faire entrer Symfony : il ne le tient que si `Contract` ne cite personne. Et le cœur ne
+# connaît aucun mécanisme par son nom : il ne le tient que si aucune couche ne cite un
+# `Mechanism`, pas même un autre mécanisme.
+#
+# Un dossier neuf sous src/ qui ne tombe dans aucune couche échappe à toutes les règles sans
+# que l'analyse le dise. C'est `deptrac debug:unassigned`, joué par check.sh, qui le relève.
 
 deptrac:
   paths:
@@ -13,9 +18,8 @@ deptrac:
     # rester pour que `getPath()` trouve config/, mais elle branche Symfony et n'a donc rien
     # à faire ici.
     #
-    # La politique, sa résolution, les contrats de stockage et l'attribut de dispense. Aucune
-    # dépendance, pas même le framework : un écran de profil lit une décision sans que le
-    # domaine connaisse la sécurité de Symfony.
+    # La politique, sa résolution, le périmètre, le compte des moyens, les contrats de
+    # stockage et l'attribut de dispense. Aucune dépendance, pas même le framework.
     - name: Contract
       collectors:
         - type: bool
@@ -26,21 +30,48 @@ deptrac:
             - type: classLike
               value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\AuthenticationPolicyBundle$'
 
+    # ── Storage : le rangement commun ────────────────────────────────────────────────────
+    # Les tables du paquet, leur préfixe et leur venue au monde, et de quoi tout oublier d'un
+    # compte. Connaît Doctrine ; ne connaît aucun mécanisme.
+    - name: Storage
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Storage\\.+$'
+
     # ── DependencyInjection : les refus de compilation ───────────────────────────────────
-    # Les quatre passes qui arrêtent la compilation, le relevé des durcissements natifs, et la
+    # Les passes qui arrêtent la compilation, le relevé des durcissements natifs, et la
     # reconstruction de la politique depuis ce que le conteneur sait porter.
     - name: DependencyInjection
       collectors:
         - type: classLike
           value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\DependencyInjection\\.+$'
 
-    # ── Bridge : les adaptateurs, nommés par ce qu'ils branchent ─────────────────────────
-    # Le verrou, les durées de session, les deux commandes, l'horloge. Tout ce qui connaît une
-    # requête, un jeton ou une console vit ici, et nulle part ailleurs.
+    # ── Bridge : les adaptateurs du cœur, nommés par ce qu'ils branchent ─────────────────
+    # Le verrou, les durées de session, le pare-feu courant, les routes, les commandes,
+    # l'horloge. Tout ce qui connaît une technique et sert le cœur vit ici.
     - name: Bridge
       collectors:
         - type: classLike
           value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Bridge\\.+$'
+
+    # ── Mechanism : un moyen de prouver qui l'on est, livré entier ───────────────────────
+    # Une couche par mécanisme, et c'est la seule forme où « un mécanisme ne cite pas son
+    # voisin » devient exécutable. Ce qui connaît une technique et ne sert qu'un mécanisme
+    # vit avec lui : otphp ici, webauthn là.
+    - name: MechanismTotp
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Mechanism\\Totp\\.+$'
+
+    - name: MechanismSecurityKey
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Mechanism\\SecurityKey\\.+$'
+
+    - name: MechanismBackupCodes
+      collectors:
+        - type: classLike
+          value: '^ArnaudMoncondhuy\\AuthenticationPolicy\\Mechanism\\BackupCodes\\.+$'
 
     # ── Bundle : le point de montage ─────────────────────────────────────────────────────
     - name: Bundle
@@ -52,14 +83,36 @@ deptrac:
     # L'invariant du paquet. Tout le reste en découle.
     Contract: []
 
+    Storage:
+      - Contract
+
     DependencyInjection:
       - Contract
 
+    # Aucun mécanisme ici : c'est ce qui empêche une condition écrite sur l'un d'eux de se
+    # glisser dans le cœur.
     Bridge:
       - Contract
+      - Storage
+
+    MechanismTotp:
+      - Contract
+      - Storage
+      - Bridge
+
+    MechanismSecurityKey:
+      - Contract
+      - Storage
+      - Bridge
+
+    MechanismBackupCodes:
+      - Contract
+      - Storage
+      - Bridge
 
     # Le bundle enregistre les passes et importe la configuration des services. Il ne connaît
-    # pas les adaptateurs : ceux-ci sont déclarés en configuration, sous condition.
+    # ni les adaptateurs ni les mécanismes : ceux-ci sont déclarés en configuration, sous
+    # condition.
     Bundle:
       - Contract
       - DependencyInjection

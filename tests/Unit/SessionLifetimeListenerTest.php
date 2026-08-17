@@ -6,12 +6,14 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Unit;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SessionLifetimeListener;
 use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
+use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
 use ArnaudMoncondhuy\AuthenticationPolicy\Rule;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryUserPreferences;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\StubFirewall;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -155,7 +157,13 @@ final class SessionLifetimeListenerTest extends TestCase
 
     private function listener(): SessionLifetimeListener
     {
-        return new SessionLifetimeListener($this->resolver(), $this->tokens, $this->clock);
+        return new SessionLifetimeListener(
+            $this->resolver(),
+            $this->tokens,
+            $this->clock,
+            new Perimeter(['main']),
+            new StubFirewall(),
+        );
     }
 
     private function requestEvent(Session $session): RequestEvent

@@ -40,14 +40,54 @@ final class Parameter
     /** La politique peut-elle exiger un second facteur de quelqu'un. */
     public const string TWO_FACTOR_REQUIRABLE = 'authentication_policy.two_factor_requirable';
 
-    /** Le service qui range les codes de secours, ou null pour celui du paquet. */
-    public const string BACKUP_CODES_STORE = 'authentication_policy.backup_codes.store';
+    /** Les pare-feux d'humains auxquels le paquet s'applique. */
+    public const string FIREWALLS = 'authentication_policy.firewalls';
 
-    /** Le cadre dont les écrans du paquet héritent, ou null pour celui du paquet. */
-    public const string LAYOUT = 'authentication_policy.layout';
+    /** Ce que la configuration pose sur les rôles, indexé par nom de rôle. */
+    public const string ROLE_POLICIES = 'authentication_policy.role_policies';
 
-    /** Créer la table des codes de secours au premier usage. */
-    public const string BACKUP_CODES_AUTO_SETUP = 'authentication_policy.backup_codes.auto_setup';
+    /** Le préfixe commun des tables que le paquet range. */
+    public const string TABLE_PREFIX = 'authentication_policy.storage.table_prefix';
+
+    /** L'alias sous lequel le rangement trouve la connexion à employer. */
+    public const string CONNECTION = 'authentication_policy.storage.connection';
+
+    /**
+     * Le préfixe des rangements : `…store.backup_codes` et ses voisins.
+     *
+     * Un alias par mécanisme, que la configuration fait pointer ailleurs. C'est ce qui permet
+     * au point de montage de brancher le rangement d'une application sans nommer une seule
+     * classe de mécanisme.
+     */
+    public const string STORE = 'authentication_policy.store';
+
+    /** Créer les tables du paquet au premier usage. */
+    public const string AUTO_SETUP = 'authentication_policy.storage.auto_setup';
+
+    /**
+     * Le préfixe des gabarits : un paramètre par écran, `…template.security` et ses voisins.
+     *
+     * Un paramètre par écran plutôt qu'un tableau : c'est ce qu'un fichier de services sait
+     * injecter dans un argument, sans passer par une expression.
+     */
+    public const string TEMPLATE = 'authentication_policy.template';
+
+    /** Le chemin de chaque route, indexé par le nom de la route. */
+    public const string ROUTES = 'authentication_policy.routes';
+
+    /** Le réglage de chaque mécanisme, indexé par son nom. Ce que relisent les passes. */
+    public const string MECHANISMS = 'authentication_policy.mechanisms';
+
+    /**
+     * Le préfixe des réglages d'un mécanisme : `…mechanism.totp.issuer` et ses voisins.
+     *
+     * Un paramètre par réglage en plus du tableau ci-dessus : c'est ce qu'un fichier de
+     * services sait injecter dans un argument.
+     */
+    public const string MECHANISM = 'authentication_policy.mechanism';
+
+    /** L'étape de second facteur est-elle montée : un mécanisme allumé, et de quoi la poser. */
+    public const string LOGIN_STEP = 'authentication_policy.login_step';
 
     private function __construct()
     {

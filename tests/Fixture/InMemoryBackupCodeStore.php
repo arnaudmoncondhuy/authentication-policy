@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\BackupCodeStore;
+use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes\BackupCodeStore;
 
 /**
  * Un rangement en mémoire : les tests portent sur le mécanisme, jamais sur une base.
  */
 final class InMemoryBackupCodeStore implements BackupCodeStore
 {
-    /** @var array<string,list<string>> */
+    /** @var array<string, list<string>> */
     private array $hashes = [];
 
     public function replaceAll(string $userIdentifier, array $hashes): void

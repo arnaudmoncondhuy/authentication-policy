@@ -1,0 +1,16 @@
+{#
+    Le dessin d'un genre de clé, recopié plutôt qu'importé : un paquet qui exigerait une
+    bibliothèque d'icônes serait un paquet qu'on n'allume pas. Le trait suit la couleur du
+    texte, si bien qu'il s'accorde à n'importe quel thème.
+#}
+{% set traces = {
+    device: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+    phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+    portable: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+    unknown: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>'
+} %}
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+     stroke-linejoin="round" aria-hidden="true">
+    {{ (traces[genre]|default(traces.unknown))|raw }}
+</svg>

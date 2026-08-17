@@ -29,5 +29,52 @@
 '%heures% h': '%heures% h'
 'Enregistrer': Enregistrer
 
+# Les mots de l'étape de connexion, où l'on prouve ce qu'on a posé.
+'Saisissez l’un des codes que vous avez notés. Il ne servira qu’une fois.': Saisissez l’un des codes que vous avez notés. Il ne servira qu’une fois.
+'Votre code': Votre code
+'Vérifier': Vérifier
+'Me déconnecter': Me déconnecter
+
+# Le code à six chiffres.
+'Une application sur votre téléphone produit un code qui change toutes les 30 secondes. Rien ne circule au moment de s’en servir.': Une application sur votre téléphone produit un code qui change toutes les 30 secondes. Rien ne circule au moment de s’en servir.
+'Photographiez ce code avec votre application d’authentification, puis recopiez le nombre qu’elle affiche.': Photographiez ce code avec votre application d’authentification, puis recopiez le nombre qu’elle affiche.
+'Le code à photographier': Le code à photographier
+'Sans appareil photo, saisissez cette clé :': 'Sans appareil photo, saisissez cette clé :'
+'Le code affiché': Le code affiché
+'Recopiez le code affiché par votre application d’authentification.': Recopiez le code affiché par votre application d’authentification.
+'Votre application d’authentification est en place. Elle produit un code toutes les 30 secondes.': Votre application d’authentification est en place. Elle produit un code toutes les 30 secondes.
+'Commencer': Commencer
+'Confirmer': Confirmer
+'Retirer ce moyen': Retirer ce moyen
+'C’est votre seul moyen : posez-en un autre avant de le retirer.': 'C’est votre seul moyen : posez-en un autre avant de le retirer.'
+'Ce code ne correspond pas. Vérifiez l’heure de votre appareil, puis réessayez.': Ce code ne correspond pas. Vérifiez l’heure de votre appareil, puis réessayez.
+
 factor.backup_codes: Codes de secours
 factor.backup_codes.state: '%count% codes encore utilisables'
+
+# Les clés de sécurité.
+'Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.': Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.
+'Poser une clé': Poser une clé
+'Nom de cette clé': Nom de cette clé
+'Ma clé USB bleue': Ma clé USB bleue
+'C’est ce nom qui vous permettra de la reconnaître pour la retirer.': C’est ce nom qui vous permettra de la reconnaître pour la retirer.
+'Utiliser cet appareil': Utiliser cet appareil
+'Utiliser une clé branchée ou mon téléphone': Utiliser une clé branchée ou mon téléphone
+'Approchez ou branchez votre clé, ou confirmez sur cet appareil.': Approchez ou branchez votre clé, ou confirmez sur cet appareil.
+'Ce navigateur ne sait pas parler aux clés de sécurité.': Ce navigateur ne sait pas parler aux clés de sécurité.
+'La clé n’a pas répondu, ou la demande a été annulée.': La clé n’a pas répondu, ou la demande a été annulée.
+'Dernier usage : %date%': 'Dernier usage : %date%'
+'Jamais employée depuis sa pose.': Jamais employée depuis sa pose.
+'Retirer': Retirer
+'Cette clé n’a pas pu être posée. Reprenez depuis le début.': Cette clé n’a pas pu être posée. Reprenez depuis le début.
+
+security_key.kind.device: Cet appareil
+security_key.kind.phone: Un téléphone
+security_key.kind.portable: Une clé à brancher
+security_key.kind.unknown: Genre inconnu
+
+factor.totp: Application d'authentification
+factor.totp.state: En place
+
+factor.security_key: Clés de sécurité
+factor.security_key.state: '%count% clés posées'

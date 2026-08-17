@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Integration;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\CurrentDecisions;
+use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes\BackupCodes;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\ApplicationFactor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Kernel\PolicyTestKernel;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
@@ -55,9 +57,15 @@ final class BundleWiringTest extends TestCase
         self::assertSame('la page qui enrôle', $response->getContent());
     }
 
-    public function testQuiSEstEnroleTraverse(): void
+    public function testQuiAPoseUnMoyenTraverse(): void
     {
-        $response = $this->request('/une-page', $this->lockingPolicy(), enrolled: ['arnaud']);
+        $kernel = $this->boot($this->lockingPolicy(), ranged: true);
+
+        /** @var BackupCodes $backupCodes */
+        $backupCodes = $kernel->getContainer()->get(BackupCodes::class);
+        $backupCodes->generateFor('arnaud');
+
+        $response = $kernel->handle($this->signed('/une-page'), HttpKernelInterface::MAIN_REQUEST, false);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame('la page ordinaire', $response->getContent());
@@ -77,12 +85,12 @@ final class BundleWiringTest extends TestCase
     public function testDeleguerSansStockageEmpecheLApplicationDeDemarrer(): void
     {
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessageMatches('/RolePolicies/');
+        $this->expectExceptionMessageMatches('/UserPreferences/');
 
-        $this->boot(
-            ['settings' => ['two_factor' => ['ceiling' => false, 'delegated_to' => ['role']]]],
-            stores: false,
-        );
+        $this->boot([
+            'preferences' => ['enabled' => false],
+            'settings' => ['two_factor' => ['ceiling' => false, 'delegated_to' => ['user']]],
+        ]);
     }
 
     public function testUnVerrouSansCheminEmpecheLApplicationDeDemarrer(): void
@@ -93,6 +101,22 @@ final class BundleWiringTest extends TestCase
         $this->boot(['settings' => ['two_factor' => ['ceiling' => true]]]);
     }
 
+    /**
+     * Un verrou qui se ferme alors qu'aucun mécanisme n'est allumé enferme dehors : la page
+     * d'enrôlement n'annonce alors que le vide.
+     */
+    public function testUnVerrouSansMecanismeEmpecheLApplicationDeDemarrer(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/mechanisms/');
+
+        $this->boot([
+            'enrollment_path' => '/enrolement',
+            'firewalls' => ['main'],
+            'settings' => ['two_factor' => ['ceiling' => true]],
+        ]);
+    }
+
     public function testUneDureeDelegueeSansPlafondEmpecheLApplicationDeDemarrer(): void
     {
         $this->expectException(LogicException::class);
@@ -101,37 +125,102 @@ final class BundleWiringTest extends TestCase
         $this->boot(['settings' => ['idle_timeout' => ['delegated_to' => ['role']]]]);
     }
 
+    /**
+     * Sans périmètre, tout paraît en place et rien ne s'applique : c'est la configuration la
+     * plus dangereuse, puisqu'elle ne produit aucun symptôme.
+     */
+    public function testGouvernerSansPerimetreEmpecheLApplicationDeDemarrer(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/firewalls/');
+
+        $this->boot(['mechanisms' => ['backup_codes' => ['enabled' => true]]], ranged: true);
+    }
+
+    public function testUnPareFeuQuiNExistePasEmpecheLApplicationDeDemarrer(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/machines/');
+
+        $this->boot([
+            'firewalls' => ['machines'],
+            'mechanisms' => ['backup_codes' => ['enabled' => true]],
+        ], ranged: true);
+    }
+
+    /**
+     * Un mécanisme que rien ne réclame à la connexion se pose, se compte, ouvre le verrou — et
+     * ne sert jamais. Rien à l'usage ne le signale : c'est une fausse confiance, et c'est la
+     * pire des fautes que ce paquet puisse laisser passer.
+     */
+    public function testUnMecanismeQueRienNeReclameEmpecheLApplicationDeDemarrer(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/auth_form_path/');
+
+        $this->boot([
+            'firewalls' => ['main'],
+            'mechanisms' => ['backup_codes' => ['enabled' => true]],
+        ], ranged: true, twoFactorStep: false);
+    }
+
+    /**
+     * Un moyen d'authentification n'est pas un point d'extension : compté sans être vérifié par
+     * le paquet, il ferait garantir un compte protégé par un mécanisme dont il ne sait rien.
+     */
+    public function testUnMoyenEcritParLApplicationEmpecheLApplicationDeDemarrer(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessageMatches('/ApplicationFactor/');
+
+        $this->boot(extra: [ApplicationFactor::class]);
+    }
+
     /** @return array<string, mixed> */
     private function lockingPolicy(): array
     {
         return [
             'enrollment_path' => '/enrolement',
+            'firewalls' => ['main'],
             'settings' => ['two_factor' => ['ceiling' => false, 'delegated_to' => ['role']]],
+            'role_policies' => ['ROLE_ADMIN' => ['two_factor' => true]],
+            'mechanisms' => ['backup_codes' => ['enabled' => true]],
         ];
     }
 
-    /**
-     * @param array<string, mixed> $policy
-     * @param list<string>         $enrolled
-     */
-    private function request(string $path, array $policy = [], array $enrolled = []): Response
+    private function signed(string $path): Request
     {
-        $kernel = $this->boot($policy, enrolled: $enrolled);
-
         $request = Request::create($path);
         $request->headers->set('PHP_AUTH_USER', 'arnaud');
         $request->headers->set('PHP_AUTH_PW', 'secret');
 
-        return $kernel->handle($request, HttpKernelInterface::MAIN_REQUEST, false);
+        return $request;
+    }
+
+    /** @param array<string, mixed> $policy */
+    private function request(string $path, array $policy = []): Response
+    {
+        $ranged = [] !== ($policy['mechanisms'] ?? []);
+
+        return $this->boot($policy, ranged: $ranged)
+            ->handle($this->signed($path), HttpKernelInterface::MAIN_REQUEST, false);
     }
 
     /**
      * @param array<string, mixed> $policy
-     * @param list<string>         $enrolled
+     * @param list<class-string>   $extra
      */
-    private function boot(array $policy = [], bool $stores = true, array $enrolled = []): PolicyTestKernel
-    {
-        $kernel = new PolicyTestKernel($policy, $stores, $enrolled);
+    private function boot(
+        array $policy = [],
+        bool $ranged = false,
+        array $extra = [],
+        bool $twoFactorStep = true,
+    ): PolicyTestKernel {
+        if ($ranged) {
+            $policy['storage']['connection'] = PolicyTestKernel::CONNECTION;
+        }
+
+        $kernel = new PolicyTestKernel($policy, $ranged, extra: $extra, twoFactorStep: $twoFactorStep);
         $this->kernels[] = $kernel;
         $kernel->boot();
 

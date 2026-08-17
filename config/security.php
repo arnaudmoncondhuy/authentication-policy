@@ -3,11 +3,16 @@
 declare(strict_types=1);
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\CurrentDecisions;
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ExitDoor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\MappedFirewall;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SessionLifetimeListener;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SystemClock;
+use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
+use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 
@@ -27,6 +32,21 @@ return static function (ContainerConfigurator $container): void {
         ->set(SystemClock::class)
         ->alias(ClockInterface::class, SystemClock::class)
 
+        // Sous quel pare-feu la requête est traitée. La carte est un service privé du
+        // SecurityBundle : `nullOnInvalid` couvre les montages où elle n'existe pas, et le
+        // paquet ne couvre alors rien.
+        ->set(MappedFirewall::class)
+            ->args([
+                service(RequestStack::class),
+                service('security.firewall.map')->nullOnInvalid(),
+            ])
+        ->alias(Firewall::class, MappedFirewall::class)
+
+        // Par où repartir quand on s'arrête au second facteur. Le pare-feu peut n'avoir pas de
+        // sortie déclarée : le bouton disparaît alors, au lieu de mener nulle part.
+        ->set(ExitDoor::class)
+            ->args([service('security.logout_url_generator')->nullOnInvalid()])
+
         // Ce qu'un écran de profil injecte : la politique appliquée à qui est connecté.
         ->set(CurrentDecisions::class)
             ->args([service(PolicyResolver::class), service(TokenStorageInterface::class)])
@@ -40,6 +60,8 @@ return static function (ContainerConfigurator $container): void {
                 service(PolicyResolver::class),
                 service(TokenStorageInterface::class),
                 service(ClockInterface::class),
+                service(Perimeter::class),
+                service(Firewall::class),
             ])
             ->tag('kernel.event_listener', ['event' => LoginSuccessEvent::class, 'method' => 'onLogin'])
             ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onRequest', 'priority' => 4])

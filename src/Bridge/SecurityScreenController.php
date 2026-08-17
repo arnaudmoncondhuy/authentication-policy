@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Bridge;
 
 use ArnaudMoncondhuy\AuthenticationPolicy\Decider;
+use ArnaudMoncondhuy\AuthenticationPolicy\DuringEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
@@ -15,7 +16,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -30,6 +30,7 @@ use Twig\Environment;
  *
  * Aucun mécanisme n'est nommé : l'écran affiche ce que les moyens installés déclarent.
  */
+#[DuringEnrollment('C\'est la page qui mène aux moyens : le verrou doit la laisser passer.')]
 final readonly class SecurityScreenController
 {
     public const string CSRF_TOKEN_ID = 'authentication_policy_security';
@@ -43,7 +44,7 @@ final readonly class SecurityScreenController
         private Policy $policy,
         private RolePolicies $roles,
         private ?UserPreferences $preferences,
-        private TokenStorageInterface $tokens,
+        private Visitor $visitor,
         private Environment $twig,
         private UrlGeneratorInterface $urls,
         private ?CsrfTokenManagerInterface $csrf,
@@ -54,14 +55,8 @@ final readonly class SecurityScreenController
 
     public function __invoke(Request $request): Response
     {
-        $token = $this->tokens->getToken();
-        $user = $token?->getUserIdentifier();
-
-        if (null === $token || null === $user || '' === $user) {
-            throw new AccessDeniedException('La sécurité d\'un compte se règle une fois connecté.');
-        }
-
-        $roles = $token->getRoleNames();
+        $user = $this->visitor->identifier();
+        $roles = $this->visitor->roles();
 
         if ($request->isMethod('POST')) {
             return $this->remember($request, $user);

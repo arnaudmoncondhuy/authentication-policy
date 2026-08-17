@@ -33,6 +33,7 @@
     "require-dev": {
         "deptrac/deptrac": "^4.7",
         "doctrine/dbal": "^4.4",
+        "endroid/qr-code": "^6.1",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.2",
@@ -40,6 +41,8 @@
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^13.3",
         "rector/rector": "^2.6",
+        "scheb/2fa-bundle": "^8.6",
+        "spomky-labs/otphp": "^11.3",
         "symfony/clock": "^7.3 || ^8.1",
         "symfony/console": "^7.3 || ^8.1",
         "symfony/framework-bundle": "^7.3 || ^8.1",
@@ -48,13 +51,17 @@
         "symfony/runtime": "^7.3 || ^8.1",
         "symfony/security-bundle": "^7.3 || ^8.1",
         "symfony/security-csrf": "^8.1",
-        "symfony/twig-bundle": "^8.1"
+        "symfony/twig-bundle": "^8.1",
+        "web-auth/webauthn-lib": "^5.3"
     },
     "suggest": {
         "symfony/console": "Pour les commandes authentication-policy:policy et authentication-policy:doctor.",
-        "scheb/2fa-bundle": "Le mécanisme de double authentification que la politique gouverne.",
-        "web-auth/webauthn-symfony-bundle": "Le mécanisme de passkey que la politique gouverne.",
-        "doctrine/dbal": "Pour ranger les codes de secours sans avoir à écrire leur stockage."
+        "scheb/2fa-bundle": "Obligatoire dès qu'un mécanisme est allumé : c'est lui qui pose l'étape de second facteur.",
+        "spomky-labs/otphp": "Pour le mécanisme du code à six chiffres.",
+        "web-auth/webauthn-lib": "Pour le mécanisme des clés de sécurité.",
+        "endroid/qr-code": "Pour montrer le secret du code à six chiffres en QR code plutôt qu'en toutes lettres.",
+        "doctrine/dbal": "Pour ranger ce que les mécanismes posent sans écrire leur stockage.",
+        "symfony/stimulus-bundle": "Pour que le comportement des clés de sécurité arrive sans une ligne dans l'application."
     },
     "autoload": {
         "psr-4": {
