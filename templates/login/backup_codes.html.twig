@@ -22,7 +22,7 @@
     {% endif %}
 
     <div class="app-card app-stack">
-        <p>{{ 'Saisissez l’un des codes que vous avez notés. Il ne servira qu’une fois.'|trans({}, 'authentication_policy') }}</p>
+        <p>{{ 'Un code ne sert qu’une fois.'|trans({}, 'authentication_policy') }}</p>
 
         <form method="post" action="{{ checkPathUrl ?: path(checkPathRoute) }}" class="app-stack">
             <div class="app-field">

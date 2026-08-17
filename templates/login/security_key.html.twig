@@ -20,7 +20,7 @@
     {% endif %}
 
     <div class="app-card app-stack">
-        <p>{{ 'Approchez ou branchez votre clé, ou confirmez sur cet appareil.'|trans({}, 'authentication_policy') }}</p>
+        <p>{{ 'Approchez votre clé, ou confirmez sur cet appareil.'|trans({}, 'authentication_policy') }}</p>
 
         <form method="post" action="{{ checkPathUrl ?: path(checkPathRoute) }}"
               data-controller="authentication-policy-security-key"
@@ -28,9 +28,8 @@
               data-authentication-policy-security-key-mode-value="get"
               data-action="submit->authentication-policy-security-key#sign"
               data-security-key-unsupported="{{ 'Ce navigateur ne sait pas parler aux clés de sécurité.'|trans({}, 'authentication_policy') }}"
-              data-security-key-refused="{{ 'La clé n’a pas répondu, ou la demande a été annulée.'|trans({}, 'authentication_policy') }}"
+              data-security-key-refused="{{ 'La clé n’a pas répondu.'|trans({}, 'authentication_policy') }}"
               class="app-stack">
-
             <p hidden data-authentication-policy-security-key-target="error" role="alert"></p>
 
             <input type="hidden" name="{{ authCodeParameterName }}" data-authentication-policy-security-key-target="answer">

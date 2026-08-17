@@ -18,7 +18,7 @@
 
     {% if pose %}
         <div class="app-card app-stack">
-            <p>{{ 'Votre application d’authentification est en place. Elle produit un code toutes les 30 secondes.'|trans({}, 'authentication_policy') }}</p>
+            <p>{{ 'En place.'|trans({}, 'authentication_policy') }}</p>
 
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
@@ -29,13 +29,13 @@
             </form>
 
             {% if autres_moyens == 0 %}
-                <p class="app-field-hint">{{ 'C’est votre seul moyen : posez-en un autre avant de le retirer.'|trans({}, 'authentication_policy') }}</p>
+                <p class="app-field-hint">{{ 'Votre seul moyen.'|trans({}, 'authentication_policy') }}</p>
             {% endif %}
         </div>
 
     {% elseif en_attente %}
         <div class="app-card app-stack">
-            <p>{{ 'Photographiez ce code avec votre application d’authentification, puis recopiez le nombre qu’elle affiche.'|trans({}, 'authentication_policy') }}</p>
+            <p>{{ 'Photographiez ce code, puis recopiez le nombre affiché.'|trans({}, 'authentication_policy') }}</p>
 
             {% if image %}
                 <img src="{{ image }}" alt="{{ 'Le code à photographier'|trans({}, 'authentication_policy') }}" width="220" height="220">
@@ -44,7 +44,7 @@
             {% if secret %}
                 {# De quoi s'en sortir sans appareil photo : le secret se recopie à la main. #}
                 <p class="app-field-hint">
-                    {{ 'Sans appareil photo, saisissez cette clé :'|trans({}, 'authentication_policy') }}
+                    {{ 'Ou saisissez cette clé :'|trans({}, 'authentication_policy') }}
                     <code>{{ secret }}</code>
                 </p>
             {% endif %}
@@ -66,8 +66,6 @@
 
     {% else %}
         <div class="app-card app-stack">
-            <p>{{ 'Une application sur votre téléphone produit un code qui change toutes les 30 secondes. Rien ne circule au moment de s’en servir.'|trans({}, 'authentication_policy') }}</p>
-
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
                 <input type="hidden" name="geste" value="start">

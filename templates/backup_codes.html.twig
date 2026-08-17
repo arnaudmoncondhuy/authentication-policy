@@ -37,7 +37,7 @@
                 {% if restants > 0 %}
                     {{ '%count% codes restent utilisables.'|trans({'%count%': restants}, 'authentication_policy') }}
                 {% else %}
-                    {{ "Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte."|trans({}, 'authentication_policy') }}
+                    {{ "Aucun code posé."|trans({}, 'authentication_policy') }}
                 {% endif %}
             </p>
 

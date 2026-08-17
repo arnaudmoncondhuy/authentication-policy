@@ -19,8 +19,6 @@
     {% endif %}
 
     <div class="app-card app-stack">
-        <p>{{ 'Recopiez le code affiché par votre application d’authentification.'|trans({}, 'authentication_policy') }}</p>
-
         <form method="post" action="{{ checkPathUrl ?: path(checkPathRoute) }}" class="app-stack">
             <div class="app-field">
                 <label class="app-field-label" for="_auth_code">{{ 'Le code affiché'|trans({}, 'authentication_policy') }}</label>

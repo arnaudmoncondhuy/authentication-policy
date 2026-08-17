@@ -15,15 +15,15 @@
     {# Le verdict d'abord : ce qu'on veut savoir avant de lire la liste. #}
     {% if total == 0 %}
         <p class="app-alert" data-tone="danger" role="status">
-            {{ "Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre."|trans({}, 'authentication_policy') }}
+            {{ "Aucun moyen ne protège ce compte."|trans({}, 'authentication_policy') }}
         </p>
     {% elseif not recours %}
         <p class="app-alert" data-tone="warning" role="status">
-            {{ "Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte."|trans({}, 'authentication_policy') }}
+            {{ "Ce compte n'a pas de recours."|trans({}, 'authentication_policy') }}
         </p>
     {% else %}
         <p class="app-alert" data-tone="success" role="status">
-            {{ 'Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.'|trans({}, 'authentication_policy') }}
+            {{ 'Ce compte est protégé, avec un recours.'|trans({}, 'authentication_policy') }}
         </p>
     {% endif %}
 

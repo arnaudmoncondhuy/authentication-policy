@@ -22,7 +22,7 @@
     {% endif %}
 
     {% if cles is empty %}
-        <p>{{ 'Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.'|trans({}, 'authentication_policy') }}</p>
+        <p>{{ 'Aucune clé posée.'|trans({}, 'authentication_policy') }}</p>
     {% else %}
         {% for cle in cles %}
             <div class="app-card">
@@ -36,7 +36,7 @@
                     {% if cle.lastUsedAt %}
                         {{ 'Dernier usage : %date%'|trans({'%date%': cle.lastUsedAt|date('d/m/Y')}, 'authentication_policy') }}
                     {% else %}
-                        {{ 'Jamais employée depuis sa pose.'|trans({}, 'authentication_policy') }}
+                        {{ 'Jamais employée.'|trans({}, 'authentication_policy') }}
                     {% endif %}
                 </p>
                 <div class="app-card-footer">
@@ -63,16 +63,14 @@
               data-authentication-policy-security-key-mode-value="create"
               data-action="submit->authentication-policy-security-key#sign"
               data-security-key-unsupported="{{ 'Ce navigateur ne sait pas parler aux clés de sécurité.'|trans({}, 'authentication_policy') }}"
-              data-security-key-refused="{{ 'La clé n’a pas répondu, ou la demande a été annulée.'|trans({}, 'authentication_policy') }}"
+              data-security-key-refused="{{ 'La clé n’a pas répondu.'|trans({}, 'authentication_policy') }}"
               class="app-stack">
-
             <p hidden data-authentication-policy-security-key-target="error" role="alert"></p>
 
             <div class="app-field">
                 <label class="app-field-label" for="nom">{{ 'Nom de cette clé'|trans({}, 'authentication_policy') }}</label>
                 <input type="text" id="nom" name="nom" maxlength="60" required
                        placeholder="{{ 'Ma clé USB bleue'|trans({}, 'authentication_policy') }}">
-                <p class="app-field-hint">{{ 'C’est ce nom qui vous permettra de la reconnaître pour la retirer.'|trans({}, 'authentication_policy') }}</p>
             </div>
 
             <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">

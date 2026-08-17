@@ -7,14 +7,14 @@
 'Ce qui protège ce compte': Ce qui protège ce compte
 'Ce que vous pouvez encore ajouter': Ce que vous pouvez encore ajouter
 'Gérer': Gérer
-"Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre.": "Aucun moyen ne protège ce compte : le mot de passe est tout ce qui le sépare de quelqu'un d'autre."
-"Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte.": "Ce compte n'a pas de recours : le jour où vous perdez ce que vous avez posé, personne ne peut vous rouvrir la porte."
-'Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.': Ce compte est protégé, et vous avez de quoi rentrer en cas de perte.
+"Aucun moyen ne protège ce compte.": "Aucun moyen ne protège ce compte."
+"Ce compte n'a pas de recours.": "Ce compte n'a pas de recours."
+'Ce compte est protégé, avec un recours.': Ce compte est protégé, avec un recours.
 
 'Codes de secours': Codes de secours
 'Notez-les maintenant : ils ne seront plus jamais affichés.': "Notez-les maintenant : ils ne seront plus jamais affichés."
 '%count% codes restent utilisables.': '%count% codes restent utilisables.'
-"Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte.": Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte.
+"Aucun code posé.": Aucun code posé.
 'Remplacer la série': Remplacer la série
 'Poser une série': Poser une série
 'Retirer les codes': Retirer les codes
@@ -30,41 +30,38 @@
 'Enregistrer': Enregistrer
 
 # Les mots de l'étape de connexion, où l'on prouve ce qu'on a posé.
-'Saisissez l’un des codes que vous avez notés. Il ne servira qu’une fois.': Saisissez l’un des codes que vous avez notés. Il ne servira qu’une fois.
+'Un code ne sert qu’une fois.': Un code ne sert qu’une fois.
 'Votre code': Votre code
 'Vérifier': Vérifier
 'Me déconnecter': Me déconnecter
 
 # Le code à six chiffres.
-'Une application sur votre téléphone produit un code qui change toutes les 30 secondes. Rien ne circule au moment de s’en servir.': Une application sur votre téléphone produit un code qui change toutes les 30 secondes. Rien ne circule au moment de s’en servir.
-'Photographiez ce code avec votre application d’authentification, puis recopiez le nombre qu’elle affiche.': Photographiez ce code avec votre application d’authentification, puis recopiez le nombre qu’elle affiche.
+'Photographiez ce code, puis recopiez le nombre affiché.': Photographiez ce code, puis recopiez le nombre affiché.
 'Le code à photographier': Le code à photographier
-'Sans appareil photo, saisissez cette clé :': 'Sans appareil photo, saisissez cette clé :'
+'Ou saisissez cette clé :': 'Ou saisissez cette clé :'
 'Le code affiché': Le code affiché
-'Recopiez le code affiché par votre application d’authentification.': Recopiez le code affiché par votre application d’authentification.
-'Votre application d’authentification est en place. Elle produit un code toutes les 30 secondes.': Votre application d’authentification est en place. Elle produit un code toutes les 30 secondes.
+'En place.': En place.
 'Commencer': Commencer
 'Confirmer': Confirmer
 'Retirer ce moyen': Retirer ce moyen
-'C’est votre seul moyen : posez-en un autre avant de le retirer.': 'C’est votre seul moyen : posez-en un autre avant de le retirer.'
-'Ce code ne correspond pas. Vérifiez l’heure de votre appareil, puis réessayez.': Ce code ne correspond pas. Vérifiez l’heure de votre appareil, puis réessayez.
+'Votre seul moyen.': 'Votre seul moyen.'
+'Ce code ne correspond pas. Vérifiez l’heure de votre appareil.': Ce code ne correspond pas. Vérifiez l’heure de votre appareil.
 
 factor.backup_codes: Codes de secours
 factor.backup_codes.state: '%count% codes encore utilisables'
 
 # Les clés de sécurité.
-'Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.': Aucune clé posée. Une clé peut être cet appareil — empreinte, visage, code — ou un objet que vous branchez.
+'Aucune clé posée.': Aucune clé posée.
 'Poser une clé': Poser une clé
 'Nom de cette clé': Nom de cette clé
 'Ma clé USB bleue': Ma clé USB bleue
-'C’est ce nom qui vous permettra de la reconnaître pour la retirer.': C’est ce nom qui vous permettra de la reconnaître pour la retirer.
 'Utiliser cet appareil': Utiliser cet appareil
 'Utiliser une clé branchée ou mon téléphone': Utiliser une clé branchée ou mon téléphone
-'Approchez ou branchez votre clé, ou confirmez sur cet appareil.': Approchez ou branchez votre clé, ou confirmez sur cet appareil.
+'Approchez votre clé, ou confirmez sur cet appareil.': Approchez votre clé, ou confirmez sur cet appareil.
 'Ce navigateur ne sait pas parler aux clés de sécurité.': Ce navigateur ne sait pas parler aux clés de sécurité.
-'La clé n’a pas répondu, ou la demande a été annulée.': La clé n’a pas répondu, ou la demande a été annulée.
+'La clé n’a pas répondu.': La clé n’a pas répondu.
 'Dernier usage : %date%': 'Dernier usage : %date%'
-'Jamais employée depuis sa pose.': Jamais employée depuis sa pose.
+'Jamais employée.': Jamais employée.
 'Retirer': Retirer
 'Cette clé n’a pas pu être posée. Reprenez depuis le début.': Cette clé n’a pas pu être posée. Reprenez depuis le début.
 
