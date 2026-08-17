@@ -42,8 +42,15 @@ final readonly class FactorProof implements ProofOfIdentity
             return true;
         }
 
+        // Hors de son périmètre, ce juge ne sait rien : il ne voit ni la session, ni ce qui y a
+        // été présenté. Répondre « oui » reviendrait à accorder par les portes qu'il ne garde pas
+        // ce qu'il refuse sur celles qu'il garde — une console, une file, un pare-feu machine
+        // deviendraient le chemin le plus court vers un droit qui exigeait une preuve.
+        //
+        // Ce qu'on ne peut pas établir, on le refuse. C'est aussi la règle du paquet qui pose la
+        // question : sans juge, il arrête la compilation plutôt que de laisser passer.
         if (!$this->visitor->isGoverned()) {
-            return true;
+            return false;
         }
 
         $identifier = $this->visitor->identifierOrNull();
@@ -55,9 +62,20 @@ final readonly class FactorProof implements ProofOfIdentity
             return false;
         }
 
-        // Le compte est protégé, et l'a donc présenté pour ouvrir cette session : le paquet
-        // réclame un moyen dès qu'il en existe un.
+        // Le compte doit être protégé…
         if ($this->factors->countFor($identifier) < 1) {
+            return false;
+        }
+
+        $age = $this->moment->ageInSeconds();
+
+        // …et l'avoir présenté DANS CETTE SESSION. Un moyen posé ne prouve rien à lui seul : il
+        // dit ce que le compte pourrait montrer, pas ce que la personne devant l'écran a montré.
+        // Sans cette seconde condition, un compte équipé serait réputé fort à la seconde où il
+        // entre — y compris par un chemin qui n'a jamais réclamé son moyen, un « se souvenir de
+        // moi », un appareil de confiance, ou une politique qui n'exige rien. C'est-à-dire
+        // exactement le mot de passe volé que ce niveau prétend arrêter.
+        if (null === $age) {
             return false;
         }
 
@@ -65,8 +83,6 @@ final readonly class FactorProof implements ProofOfIdentity
             return true;
         }
 
-        $age = $this->moment->ageInSeconds();
-
-        return null !== $age && $age <= $this->freshness;
+        return $age <= $this->freshness;
     }
 }

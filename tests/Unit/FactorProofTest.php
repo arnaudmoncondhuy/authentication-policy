@@ -51,15 +51,26 @@ final class FactorProofTest extends TestCase
     }
 
     /**
-     * Hors du périmètre, le paquet ne se prononce pas et laisse passer. Une machine ne posera
-     * jamais de second facteur : lui opposer un détour la mettrait dehors sans porte.
+     * Hors du périmètre, le paquet ne sait rien — et ce qu'on ne sait pas, on le refuse.
+     *
+     * Laisser passer ferait des portes qu'il ne garde pas le chemin le plus court vers un droit
+     * qui exigeait une preuve : une file, une console, un pare-feu machine accorderaient ce que
+     * l'écran refuse. Il est vrai qu'une machine ne posera jamais de second facteur et se
+     * retrouve donc dehors sans porte — mais c'est le signe qu'un tel droit ne devait pas lui
+     * être accordé, et il vaut mieux le voir que se le faire accorder en silence.
      */
-    public function testOutsideThePerimeterItDoesNotDecide(): void
+    public function testOutsideThePerimeterItRefuses(): void
     {
         $proof = $this->proof(posed: 0, firewall: 'machines');
 
-        self::assertTrue($proof->meets(Proof::Strong));
-        self::assertTrue($proof->meets(Proof::Recent));
+        self::assertFalse($proof->meets(Proof::Strong));
+        self::assertFalse($proof->meets(Proof::Recent));
+    }
+
+    /** Ce qui n'exige rien passe partout, y compris hors du périmètre. */
+    public function testOutsideThePerimeterNothingRequiredStillPasses(): void
+    {
+        self::assertTrue($this->proof(posed: 0, firewall: 'machines')->meets(Proof::None));
     }
 
     /** Un compte sans moyen n'a rien présenté et ne peut rien présenter. */
@@ -69,12 +80,16 @@ final class FactorProofTest extends TestCase
     }
 
     /**
-     * Un moyen posé vaut un moyen présenté : le paquet le réclame à la connexion dès qu'il
-     * existe, et la session en cours l'a donc franchi.
+     * Un moyen posé ne vaut pas un moyen présenté.
+     *
+     * Il dit ce que le compte pourrait montrer, pas ce que la personne devant l'écran a montré.
+     * Croire l'un pour l'autre suppose que le moyen soit réclamé à chaque entrée — ce qu'une
+     * politique qui ne l'exige pas, un « se souvenir de moi » ou un appareil de confiance
+     * démentent. Le niveau se refermerait alors sur le seul cas qu'il prétend arrêter.
      */
-    public function testAnEquippedAccountMeetsTheStrongLevel(): void
+    public function testAnEquippedAccountThatPresentedNothingIsNotStrong(): void
     {
-        self::assertTrue($this->proof(posed: 1)->meets(Proof::Strong));
+        self::assertFalse($this->proof(posed: 1)->meets(Proof::Strong));
     }
 
     /** Sans rien de présenté dans cette session, rien n'est récent. */

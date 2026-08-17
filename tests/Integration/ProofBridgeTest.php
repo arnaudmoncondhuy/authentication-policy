@@ -74,12 +74,12 @@ final class ProofBridgeTest extends TestCase
     }
 
     /** Un moyen posé vaut un moyen présenté, mais il ne vient pas de l'être. */
-    public function testAnEquippedAccountIsStrongWithoutBeingRecent(): void
+    public function testPosingAFactorWithoutPresentingItProvesNothing(): void
     {
         $kernel = $this->boot();
         $this->pose($kernel);
 
-        self::assertSame('strong=1 recent=0', $this->ask($kernel));
+        self::assertSame('strong=0 recent=0', $this->ask($kernel));
     }
 
     /**
@@ -142,7 +142,7 @@ final class ProofBridgeTest extends TestCase
 
         self::assertSame(Response::HTTP_OK, $answered->getStatusCode());
         self::assertStringContainsString('pas la bonne réponse', (string) $answered->getContent());
-        self::assertSame('strong=1 recent=0', $this->ask($kernel));
+        self::assertSame('strong=0 recent=0', $this->ask($kernel));
     }
 
     /**
