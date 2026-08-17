@@ -19,5 +19,15 @@
 'Poser une série': Poser une série
 'Retirer les codes': Retirer les codes
 
+'La durée de vos sessions': La durée de vos sessions
+'Votre session se ferme après %heures% h sans activité.': Votre session se ferme après %heures% h sans activité.
+'Et au plus tard %jours% jours après la connexion.': Et au plus tard %jours% jours après la connexion.
+'Cette durée est imposée par votre rôle.': Cette durée est imposée par votre rôle.
+'Fermer ma session plus tôt': Fermer ma session plus tôt
+'Garder la durée par défaut': Garder la durée par défaut
+'%minutes% minutes': '%minutes% minutes'
+'%heures% h': '%heures% h'
+'Enregistrer': Enregistrer
+
 factor.backup_codes: Codes de secours
 factor.backup_codes.state: '%count% codes encore utilisables'

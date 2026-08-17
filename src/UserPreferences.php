@@ -30,4 +30,15 @@ interface UserPreferences
      * @return array<string, bool|int>
      */
     public function valuesFor(string $userIdentifier): array;
+
+    /**
+     * Retient ce qu'une personne a choisi pour elle-même.
+     *
+     * Ce qui est retenu n'est pas ce qui s'applique : un choix plus large que le plafond reste
+     * rangé tel quel, et la résolution le ramène au plafond. C'est ce qui permet de desserrer la
+     * politique plus tard sans avoir à redemander à chacun ce qu'il voulait.
+     *
+     * @param array<string,bool|int|null> $values indexé par le nom du réglage ; null efface le choix
+     */
+    public function remember(string $userIdentifier, array $values): void;
 }

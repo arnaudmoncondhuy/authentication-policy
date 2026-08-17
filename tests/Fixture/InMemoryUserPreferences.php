@@ -7,7 +7,7 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
 
 /** Ce qu'une personne aurait choisi dans son profil. */
-final readonly class InMemoryUserPreferences implements UserPreferences
+final class InMemoryUserPreferences implements UserPreferences
 {
     /** @param array<string, array<string, bool|int>> $byUser */
     public function __construct(private array $byUser = [])
@@ -17,5 +17,18 @@ final readonly class InMemoryUserPreferences implements UserPreferences
     public function valuesFor(string $userIdentifier): array
     {
         return $this->byUser[$userIdentifier] ?? [];
+    }
+
+    public function remember(string $userIdentifier, array $values): void
+    {
+        foreach ($values as $setting => $value) {
+            if (null === $value) {
+                unset($this->byUser[$userIdentifier][$setting]);
+
+                continue;
+            }
+
+            $this->byUser[$userIdentifier][$setting] = $value;
+        }
     }
 }

@@ -127,6 +127,10 @@ paquets restent indépendants.
 règle — sur le modèle des pages de sécurité qu'on connaît. Il existe dès l'installation, même
 sans aucun mécanisme allumé : c'est là qu'il a le plus à dire.
 
+**La durée des sessions y figure aussi**, et s'y règle quand la politique la délègue à chacun.
+C'est le paquet qui la décide et l'applique ; il n'y avait pas de raison qu'une application
+réécrive l'écran qui la montre.
+
 Il ne nomme aucun mécanisme : il affiche ce que les moyens installés déclarent. Un moyen écrit
 par l'application y figure au même titre que ceux du paquet, sans rien avoir à inscrire nulle
 part — il suffit qu'il implémente `Factor`.

@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 return static function (RoutingConfigurator $routes): void {
     $routes->add('authentication_policy_security', '/securite')
         ->controller(SecurityScreenController::class)
-        ->methods(['GET'])
+        ->methods(['GET', 'POST'])
     ;
 
     $routes->add('authentication_policy_backup_codes', '/codes-de-secours')
