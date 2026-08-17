@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\Totp;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\DuringEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
@@ -31,6 +32,7 @@ final readonly class TotpController
     public function __construct(
         private Totp $totp,
         private Factors $factors,
+        private ProvenEnrollment $enrollment,
         private QrCode $qrCode,
         private Visitor $visitor,
         private Environment $twig,
@@ -51,12 +53,33 @@ final readonly class TotpController
 
         $this->requireCsrf($request);
 
-        return match ($request->request->get('geste')) {
+        $geste = $request->request->get('geste');
+
+        // Poser, remplacer ou retirer un moyen sur un compte qui en a déjà un demande une
+        // identité prouvée récemment : sans cela, une session dérobée s'équipe elle-même.
+        if (\in_array($geste, ['start', 'confirm'], true) && !$this->enrollment->allowsAdding($user)) {
+            return $this->reprove();
+        }
+
+        return match ($geste) {
             'start' => $this->start($user),
             'confirm' => $this->confirm($user, (string) $request->request->get('code')),
             'forget' => $this->forget($user),
             default => $this->back(),
         };
+    }
+
+    /**
+     * Renvoie présenter un moyen plutôt que de refuser sèchement : ce qui manque se répare en
+     * une manipulation, et l'écran de redemande ramène ici une fois l'identité prouvée.
+     */
+    private function reprove(): RedirectResponse
+    {
+        try {
+            return new RedirectResponse($this->urls->generate('authentication_policy_reprove'));
+        } catch (\Throwable) {
+            return $this->back();
+        }
     }
 
     /**
@@ -83,6 +106,19 @@ final readonly class TotpController
 
     private function forget(string $user): Response
     {
+        // Le refus « c'est ton dernier moyen » l'emporte sur l'exigence de preuve : faire
+        // présenter son téléphone pour apprendre ensuite qu'on ne pouvait pas retirer serait une
+        // manipulation pour rien, et ce qu'on apprend ainsi porte sur son propre compte.
+        try {
+            $this->factors->requireRemovable($user, 'totp');
+        } catch (LastFactorRemoval $refus) {
+            return $this->render($user, error: $refus->getMessage());
+        }
+
+        if (!$this->enrollment->allowsRemoving($user)) {
+            return $this->reprove();
+        }
+
         try {
             $this->totp->forgetFor($user);
         } catch (LastFactorRemoval $refus) {

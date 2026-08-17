@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\DuringEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
@@ -32,6 +33,7 @@ final readonly class BackupCodesController
     public function __construct(
         private BackupCodes $backupCodes,
         private Factors $factors,
+        private ProvenEnrollment $enrollment,
         private Visitor $visitor,
         private Environment $twig,
         private UrlGeneratorInterface $urls,
@@ -51,7 +53,27 @@ final readonly class BackupCodesController
 
         $this->requireCsrf($request);
 
-        if ('discard' === $request->request->get('geste')) {
+        $abandon = 'discard' === $request->request->get('geste');
+
+        // Régénérer une série, c'est remplacer un moyen ; l'abandonner, c'est le retirer. Les
+        // deux demandent une identité prouvée récemment dès que le compte est déjà équipé,
+        // sans quoi une session dérobée se fabrique ses propres codes.
+        if (!$abandon && !$this->enrollment->allowsAdding($user)) {
+            return $this->reprove();
+        }
+
+        if ($abandon) {
+            // Le refus « c'est ton dernier moyen » l'emporte sur l'exigence de preuve.
+            try {
+                $this->factors->requireRemovable($user, 'backup_codes');
+            } catch (LastFactorRemoval $refus) {
+                return $this->render($user, null, $refus->getMessage());
+            }
+
+            if (!$this->enrollment->allowsRemoving($user)) {
+                return $this->reprove();
+            }
+
             try {
                 $this->backupCodes->discardFor($user);
             } catch (LastFactorRemoval $refus) {
@@ -62,6 +84,19 @@ final readonly class BackupCodesController
         }
 
         return $this->render($user, $this->backupCodes->generateFor($user));
+    }
+
+    /**
+     * Renvoie présenter un moyen plutôt que de refuser sèchement : ce qui manque se répare en
+     * une manipulation, et l'écran de redemande ramène ici une fois l'identité prouvée.
+     */
+    private function reprove(): RedirectResponse
+    {
+        try {
+            return new RedirectResponse($this->urls->generate('authentication_policy_reprove'));
+        } catch (\Throwable) {
+            return new RedirectResponse($this->urls->generate($this->backupCodes->manageAt()));
+        }
     }
 
     /**

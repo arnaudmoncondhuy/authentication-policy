@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
+use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /*
@@ -27,6 +30,16 @@ return static function (ContainerConfigurator $container): void {
                 // Le refus de retirer le dernier moyen n'a de sens que si quelque chose l'exige.
                 // Une application qui n'exige rien laisse chacun retirer ce qu'il veut.
                 param(Parameter::TWO_FACTOR_REQUIRABLE),
+            ])
+            ->public()
+
+        // Qui a le droit de poser ou de retirer un moyen. Le juge des preuves est référencé en
+        // « ignore on invalid » : il vient de l'autre paquet, et celui-ci doit continuer de
+        // fonctionner sans lui.
+        ->set(ProvenEnrollment::class)
+            ->args([
+                service(Factors::class),
+                service(ProofOfIdentity::class)->nullOnInvalid(),
             ])
             ->public()
     ;

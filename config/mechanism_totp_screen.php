@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
@@ -26,6 +27,7 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service(Totp::class),
                 service(Factors::class),
+                service(ProvenEnrollment::class),
                 service(QrCode::class),
                 service(Visitor::class),
                 service(Environment::class),

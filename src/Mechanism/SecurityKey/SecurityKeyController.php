@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\SecurityKey;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\DuringEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
@@ -31,6 +32,7 @@ final readonly class SecurityKeyController
     public function __construct(
         private SecurityKey $securityKey,
         private Factors $factors,
+        private ProvenEnrollment $enrollment,
         private Visitor $visitor,
         private Environment $twig,
         private UrlGeneratorInterface $urls,
@@ -50,11 +52,32 @@ final readonly class SecurityKeyController
 
         $this->requireCsrf($request);
 
-        return match ($request->request->get('geste')) {
+        $geste = $request->request->get('geste');
+
+        // Poser ou retirer un moyen sur un compte qui en a déjà un demande une identité prouvée
+        // récemment. Sans cela, une session dérobée s'équipe elle-même et se rend fraîche.
+        if ('add' === $geste && !$this->enrollment->allowsAdding($user)) {
+            return $this->reprove();
+        }
+
+        return match ($geste) {
             'add' => $this->add($request, $user),
             'remove' => $this->remove($request, $user),
             default => $this->back(),
         };
+    }
+
+    /**
+     * Renvoie présenter un moyen, plutôt que de refuser sèchement : ce qui manque se répare en
+     * une manipulation, et l'écran de redemande ramène ici une fois l'identité prouvée.
+     */
+    private function reprove(): RedirectResponse
+    {
+        try {
+            return new RedirectResponse($this->urls->generate('authentication_policy_reprove'));
+        } catch (\Throwable) {
+            return $this->back();
+        }
     }
 
     private function add(Request $request, string $user): Response
@@ -74,6 +97,18 @@ final readonly class SecurityKeyController
 
     private function remove(Request $request, string $user): Response
     {
+        // Le refus « c'est ton dernier moyen » l'emporte sur l'exigence de preuve : voir le
+        // commentaire du même geste dans le mécanisme du code à usage unique.
+        try {
+            $this->factors->requireRemovable($user, 'security_key');
+        } catch (LastFactorRemoval $refus) {
+            return $this->render($request, $user, $refus->getMessage());
+        }
+
+        if (!$this->enrollment->allowsRemoving($user)) {
+            return $this->reprove();
+        }
+
         try {
             $this->securityKey->removeFor($user, (string) $request->request->get('cle'));
         } catch (LastFactorRemoval $refus) {
