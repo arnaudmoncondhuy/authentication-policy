@@ -206,10 +206,10 @@ PHP 8.4+, Symfony 7.3+ et 8.x. Aucune dépendance hors Symfony et PSR-20.
 
 ## Version
 
-**0.x — le paquet marche, il n'est pas éprouvé.** La distinction n'est pas de la modestie : il
-n'a encore tourné qu'en essai, jamais avec de vrais comptes ni un mécanisme de second facteur
-réellement branché derrière. Ce qui est écrit ici est tenu par des tests ; ce qui se découvre à
-l'usage ne l'est pas encore.
+**0.x — le paquet marche, il n'est pas éprouvé.** La distinction n'est pas de la modestie.
+Depuis le 17/08/2026, il tourne dans une première application réelle, avec de vrais comptes et
+deux mécanismes de second facteur branchés derrière — une application d'authentification et des
+clés. Il en manque une seconde, et c'est elle qui dira ce qui ne se voit pas d'ici.
 
 Tant que le numéro commence par un zéro, **la surface publique peut bouger** — les six contrats
 compris. Deux conditions pour le 1.0, et pas une de moins :
