@@ -47,12 +47,26 @@ final class BackupCodesScreenTest extends TestCase
         /** @var Factors $factors */
         $factors = $container->get(Factors::class);
 
-        self::assertSame(0, $factors->countFor('arnaud'));
+        self::assertSame(1, $factors->countFor('arnaud'));
 
         $backupCodes->generateFor('arnaud');
 
-        self::assertSame(BackupCodes::HOW_MANY, $factors->countFor('arnaud'));
-        self::assertSame(['backup_codes' => 10], $factors->detailFor('arnaud'));
+        self::assertSame(BackupCodes::HOW_MANY + 1, $factors->countFor('arnaud'));
+        self::assertSame(10, $factors->detailFor('arnaud')['backup_codes']);
+    }
+
+    /**
+     * Le moyen que l'application écrit elle-même doit être compté sans qu'elle ait rien à
+     * déclarer. Sans cela, le paquet croit un compte démuni, et le verrou se referme sur
+     * quelqu'un qui a pourtant posé ce qu'on lui demandait.
+     */
+    public function testLeMoyenEcritParLApplicationEstCompteSansMarqueAPoser(): void
+    {
+        /** @var Factors $factors */
+        $factors = $this->boot()->getContainer()->get(Factors::class);
+
+        self::assertSame(1, $factors->countFor('arnaud'));
+        self::assertArrayHasKey('quelque_chose_de_l_application', $factors->detailFor('arnaud'));
     }
 
     public function testLEcranSAfficheSansQueLApplicationNEcriveRien(): void

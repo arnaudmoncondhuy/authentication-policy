@@ -43,6 +43,12 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         // Celle-ci ne refuse rien : elle relève ce qui n'appartient pas au paquet, et que
         // `authentication-policy:doctor` rend.
         $container->addCompilerPass(new InspectHardenedDefaultsPass());
+
+        // Les moyens écrits par l'application se marquent seuls. Le `_instanceof` d'un fichier
+        // de services ne vaut que pour ce fichier : sans cette ligne, le paquet ne verrait que
+        // ses propres mécanismes, compterait zéro moyen sur un compte pourtant équipé, et
+        // refermerait le verrou sur lui.
+        $container->registerForAutoconfiguration(Factor::class)->addTag('authentication_policy.factor');
     }
 
     public function configure(DefinitionConfigurator $definition): void

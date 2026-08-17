@@ -7,6 +7,7 @@ namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Kernel;
 use ArnaudMoncondhuy\AuthenticationPolicy\AuthenticationPolicyBundle;
 use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\ApplicationFactor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryEnrollment;
@@ -113,6 +114,7 @@ final class PolicyTestKernel extends Kernel
         if ($this->twig) {
             $container->loadFromExtension('twig', ['default_path' => __DIR__.'/../Fixture/Web/templates']);
             $container->register(InMemoryBackupCodeStore::class)->setPublic(true);
+            $container->register(ApplicationFactor::class)->setPublic(true)->setAutoconfigured(true);
         }
 
         $container->loadFromExtension('authentication_policy', $this->policy);
