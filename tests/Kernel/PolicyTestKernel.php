@@ -8,6 +8,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\AuthenticationPolicyBundle;
 use ArnaudMoncondhuy\AuthenticationPolicy\Enrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryEnrollment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryRolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\EnrollmentController;
@@ -41,6 +42,7 @@ final class PolicyTestKernel extends Kernel
         private readonly array $policy = [],
         private readonly bool $stores = true,
         private readonly array $enrolled = [],
+        private readonly bool $twig = false,
     ) {
         // Hors mode debug : le noyau y écrirait chaque événement notifié sur la sortie d'erreur,
         // et la routine qualité deviendrait illisible. Ce que le debug apporte — reconstruire le
@@ -53,6 +55,10 @@ final class PolicyTestKernel extends Kernel
     {
         yield new FrameworkBundle();
         yield new SecurityBundle();
+        if ($this->twig) {
+            yield new \Symfony\Bundle\TwigBundle\TwigBundle();
+        }
+
         yield new AuthenticationPolicyBundle();
     }
 
@@ -104,6 +110,11 @@ final class PolicyTestKernel extends Kernel
             'access_control' => [['path' => '^/', 'roles' => 'PUBLIC_ACCESS']],
         ]);
 
+        if ($this->twig) {
+            $container->loadFromExtension('twig', ['default_path' => __DIR__.'/../Fixture/Web/templates']);
+            $container->register(InMemoryBackupCodeStore::class)->setPublic(true);
+        }
+
         $container->loadFromExtension('authentication_policy', $this->policy);
 
         // L'heure que le test avance à la main, publique pour qu'il l'atteigne.
@@ -134,6 +145,10 @@ final class PolicyTestKernel extends Kernel
     {
         $routes->add('page', '/une-page')->controller(GuardedController::class);
         $routes->add('enrolement', '/enrolement')->controller(EnrollmentController::class);
+
+        if ($this->twig) {
+            $routes->import(__DIR__.'/../../config/routes.php');
+        }
     }
 
     /** La date de la source la plus récemment modifiée du paquet. */

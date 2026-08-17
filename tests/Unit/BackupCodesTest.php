@@ -8,6 +8,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\BackupCodes;
 use ArnaudMoncondhuy\AuthenticationPolicy\BackupCodeStore;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -104,31 +105,5 @@ final class BackupCodesTest extends TestCase
         // Le registre compte le mécanisme qu'il protège : autrement, retirer la série paraîtrait
         // sans conséquence.
         return new BackupCodes($store, new Factors([$backupCodes], true));
-    }
-}
-
-/**
- * Un rangement en mémoire : les tests portent sur le mécanisme, pas sur une base.
- */
-final class InMemoryBackupCodeStore implements BackupCodeStore
-{
-    /** @var array<string,list<string>> */
-    private array $hashes = [];
-
-    public function replaceAll(string $userIdentifier, array $hashes): void
-    {
-        $this->hashes[$userIdentifier] = $hashes;
-    }
-
-    public function hashesFor(string $userIdentifier): array
-    {
-        return $this->hashes[$userIdentifier] ?? [];
-    }
-
-    public function forget(string $userIdentifier, string $hash): void
-    {
-        $this->hashes[$userIdentifier] = array_values(
-            array_filter($this->hashes[$userIdentifier] ?? [], static fn (string $kept): bool => $kept !== $hash),
-        );
     }
 }
