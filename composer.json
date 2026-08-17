@@ -32,6 +32,7 @@
     },
     "require-dev": {
         "deptrac/deptrac": "^4.7",
+        "doctrine/dbal": "^4.4",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.2",
@@ -43,14 +44,17 @@
         "symfony/console": "^7.3 || ^8.1",
         "symfony/framework-bundle": "^7.3 || ^8.1",
         "symfony/rate-limiter": "^7.3 || ^8.1",
-        "symfony/routing": "^7.3 || ^8.1",
+        "symfony/routing": "^8.1",
         "symfony/runtime": "^7.3 || ^8.1",
-        "symfony/security-bundle": "^7.3 || ^8.1"
+        "symfony/security-bundle": "^7.3 || ^8.1",
+        "symfony/security-csrf": "^8.1",
+        "symfony/twig-bundle": "^8.1"
     },
     "suggest": {
         "symfony/console": "Pour les commandes authentication-policy:policy et authentication-policy:doctor.",
         "scheb/2fa-bundle": "Le mécanisme de double authentification que la politique gouverne.",
-        "web-auth/webauthn-symfony-bundle": "Le mécanisme de passkey que la politique gouverne."
+        "web-auth/webauthn-symfony-bundle": "Le mécanisme de passkey que la politique gouverne.",
+        "doctrine/dbal": "Pour ranger les codes de secours sans avoir à écrire leur stockage."
     },
     "autoload": {
         "psr-4": {

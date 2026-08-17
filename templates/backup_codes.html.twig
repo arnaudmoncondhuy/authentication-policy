@@ -1,0 +1,64 @@
+{#
+    L'écran des codes de secours.
+
+    Il se remplace en entier : un fichier du même nom dans `templates/bundles/` de l'application
+    prend sa place, et rien ici n'est perdu puisque tout y est réécrit.
+
+    Le cadre, lui, se choisit sans toucher à ce fichier : la clé `layout` de la configuration
+    nomme le gabarit dont celui-ci hérite.
+#}
+{% extends layout ?? '@AuthenticationPolicy/layout.html.twig' %}
+
+{% block title %}{{ 'Codes de secours'|trans({}, 'authentication_policy') }}{% endblock %}
+
+{% block body %}
+<div class="app-stack">
+    <h1>{{ 'Codes de secours'|trans({}, 'authentication_policy') }}</h1>
+
+    {% if erreur %}
+        <p class="app-alert" data-tone="danger" role="alert">{{ erreur }}</p>
+    {% endif %}
+
+    {% if codes %}
+        <div class="app-alert" data-tone="warning" role="status">
+            {{ 'Notez-les maintenant : ils ne seront plus jamais affichés.'|trans({}, 'authentication_policy') }}
+        </div>
+
+        <div class="app-card">
+            <ul>
+                {% for code in codes %}
+                    <li><code>{{ code }}</code></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div class="app-card app-stack">
+            <p>
+                {% if restants > 0 %}
+                    {{ '%count% codes restent utilisables.'|trans({'%count%': restants}, 'authentication_policy') }}
+                {% else %}
+                    {{ "Aucun code posé. Sans eux, perdre ses autres moyens ferme le compte."|trans({}, 'authentication_policy') }}
+                {% endif %}
+            </p>
+
+            <form method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                <button type="submit" class="app-btn" data-tone="accent">
+                    {{ (restants > 0 ? 'Remplacer la série' : 'Poser une série')|trans({}, 'authentication_policy') }}
+                </button>
+            </form>
+
+            {% if restants > 0 %}
+                <form method="post">
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                    <input type="hidden" name="geste" value="discard">
+                    <button type="submit" class="app-btn" data-tone="danger" data-variant="subtle" data-size="sm"
+                            {{ autres_moyens > 0 ? '' : 'disabled' }}>
+                        {{ 'Retirer les codes'|trans({}, 'authentication_policy') }}
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

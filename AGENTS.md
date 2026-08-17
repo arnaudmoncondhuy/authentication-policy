@@ -57,13 +57,21 @@ Il tient **trois garanties**, et chacune arrête la compilation du conteneur :
 Une quatrième chose se rapporte sans se refuser : les durcissements natifs absents, que
 `authentication-policy:doctor` relève parce que rien d'autre ne les signale.
 
-Il **n'authentifie personne**, et **ne fabrique aucun mécanisme**. Le second facteur, les
-passkeys, les codes de secours existent déjà ; la politique dit ce qui est exigé de qui, et le
-mécanisme installé obéit. Il **ne stocke rien** : trois contrats, que le projet implémente.
+Il **n'authentifie personne** : il dit ce qui est exigé de qui, et ce qui est posé lui répond.
 
-Une fonctionnalité qui empiéterait sur le mécanisme — un générateur de codes, un écran de
-profil, un modèle de rôles — n'entre pas ici. Elle appartient au projet, ou au paquet qui la
-fait déjà bien.
+**Il fabrique des mécanismes, et c'est nouveau.** Un mécanisme livré ici — les codes de secours
+aujourd'hui, d'autres demain — s'allume par configuration, et reste éteint tant qu'on ne l'a pas
+demandé : ni écran, ni table, ni service. C'est ce qui permet d'en porter plusieurs sans que le
+paquet n'en impose aucun.
+
+**Le cœur ne cite jamais un mécanisme par son nom.** Il compte des moyens (`Factor`), en réclame,
+et refuse le retrait du dernier. Un mécanisme nouveau implémente ce contrat et se déclare ; rien
+du cœur ne bouge. Une condition écrite sur `backup_codes` ailleurs que dans le mécanisme des
+codes de secours est une faute, et c'est la seule règle qui tienne cette promesse.
+
+**Ce qu'un mécanisme livre, il le livre entier** : sa logique, son rangement par défaut, son
+écran. L'écran se remplace fichier par fichier depuis l'application, et son cadre se nomme en
+configuration — un paquet qui imposerait sa mise en page serait un paquet qu'on n'allume pas.
 
 **L'énumération des réglages est fermée.** Un réglage qu'une application pourrait ajouter
 échapperait aux trois garanties : rien ne dirait qu'il a un plafond, un stockage, ou quelqu'un

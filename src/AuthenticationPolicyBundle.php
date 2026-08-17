@@ -80,6 +80,32 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('backup_codes')
+                    ->info('Les codes de secours : le moyen d\'entrer quand tous les autres sont perdus.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultFalse()
+                            ->info('Éteints tant qu\'on ne les allume pas : un mécanisme non demandé n\'a ni écran, ni table, ni service.')
+                        ->end()
+                        ->scalarNode('store')
+                            ->defaultNull()
+                            ->info('Le service qui les range. Absent, le paquet les range lui-même dans une table à eux.')
+                        ->end()
+                        ->scalarNode('template')
+                            ->defaultValue('@AuthenticationPolicy/backup_codes.html.twig')
+                            ->info('Le gabarit de l\'écran. Le remplacer ici, ou déposer le même nom dans templates/bundles/.')
+                        ->end()
+                        ->scalarNode('layout')
+                            ->defaultNull()
+                            ->info('Le cadre dont l\'écran hérite — le vôtre, avec vos en-têtes. Absent, le paquet en fournit un nu.')
+                        ->end()
+                        ->booleanNode('auto_setup')
+                            ->defaultTrue()
+                            ->info('Créer la table au premier usage. À couper pour la tenir dans ses propres migrations.')
+                        ->end()
+                    ->end()
+                ->end()
             ->end()
         ;
     }
@@ -101,6 +127,7 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         $path = $config['enrollment_path'] ?? null;
 
         $container->setParameter(Parameter::RULES, $settings);
+        $container->setParameter(Parameter::TWO_FACTOR_REQUIRABLE, $policy->canRequire(Setting::TwoFactor));
         $container->setParameter(Parameter::ENROLLMENT_PATH, $path);
 
         $configurator->import('../config/policy.php');
@@ -116,6 +143,30 @@ final class AuthenticationPolicyBundle extends AbstractBundle
             // raison de l'écrire.
             if ($policy->canRequire(Setting::TwoFactor)) {
                 $configurator->import('../config/enrollment.php');
+            }
+        }
+
+        /** @var array{enabled: bool, store: string|null, template: string, layout: string|null, auto_setup: bool} $backupCodes */
+        $backupCodes = $config['backup_codes'] ?? [
+            'enabled' => false,
+            'store' => null,
+            'template' => '@AuthenticationPolicy/backup_codes.html.twig',
+            'layout' => null,
+            'auto_setup' => true,
+        ];
+
+        if ($backupCodes['enabled']) {
+            $container->setParameter(Parameter::BACKUP_CODES_AUTO_SETUP, $backupCodes['auto_setup']);
+            $container->setParameter(Parameter::BACKUP_CODES_TEMPLATE, $backupCodes['template']);
+            $container->setParameter(Parameter::BACKUP_CODES_LAYOUT, $backupCodes['layout']);
+
+            $configurator->import('../config/factors.php');
+            $configurator->import('../config/backup_codes.php');
+
+            // Le rangement du paquet est déjà en place ; une application qui range ailleurs le
+            // remplace ici, et c'est la seule décision qu'elle ait à prendre.
+            if (null !== $backupCodes['store']) {
+                $container->setAlias(BackupCodeStore::class, $backupCodes['store']);
             }
         }
 

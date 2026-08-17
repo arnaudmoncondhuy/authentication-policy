@@ -37,6 +37,21 @@ final class Parameter
     /** Les marques désignant des portes, en plus de celles que le framework pose. */
     public const string EXTRA_SURFACE_TAGS = 'authentication_policy.surface_tags';
 
+    /** La politique peut-elle exiger un second facteur de quelqu'un. */
+    public const string TWO_FACTOR_REQUIRABLE = 'authentication_policy.two_factor_requirable';
+
+    /** Le service qui range les codes de secours, ou null pour celui du paquet. */
+    public const string BACKUP_CODES_STORE = 'authentication_policy.backup_codes.store';
+
+    /** Le gabarit de l'écran des codes de secours. */
+    public const string BACKUP_CODES_TEMPLATE = 'authentication_policy.backup_codes.template';
+
+    /** Le cadre dont cet écran hérite, ou null pour celui du paquet. */
+    public const string BACKUP_CODES_LAYOUT = 'authentication_policy.backup_codes.layout';
+
+    /** Créer la table des codes de secours au premier usage. */
+    public const string BACKUP_CODES_AUTO_SETUP = 'authentication_policy.backup_codes.auto_setup';
+
     private function __construct()
     {
     }

@@ -1,0 +1,16 @@
+{#
+    Le cadre de repli, volontairement nu : il n'existe que pour qu'un écran du paquet s'affiche
+    dans une application qui n'a pas encore le sien. Nommer son propre gabarit dans la clé
+    `layout` de la configuration suffit à ne plus jamais passer par ici.
+#}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|default('fr') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

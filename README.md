@@ -105,16 +105,43 @@ fichier, un annuaire distant, une clé Redis. Le paquet ne le saura jamais.
 | `UserPreferences` | ce qu'une personne a choisi pour elle-même |
 | `Enrollment` | si quelqu'un a posé ce que la politique exige de lui |
 
-**Il ne fabrique aucun mécanisme.** Le second facteur, les passkeys, les codes de secours
-existent déjà et sont bien faits. La politique dit ce qui est exigé ; le mécanisme installé
-obéit. `authentication-policy:doctor` distingue explicitement ce que le paquet applique de ce
-qu'il se contente de résoudre — sans quoi on croit tenu ce qui ne l'est pas.
+**Il fabrique les mécanismes qu'on lui demande, et aucun autre.** Les codes de secours sont
+livrés avec le paquet — logique, rangement, écran — et restent éteints tant que la configuration
+ne les allume pas. Le second facteur par application ou par clé reste au mécanisme installé, qui
+se déclare au paquet pour être compté. `authentication-policy:doctor` distingue explicitement ce
+que le paquet applique de ce qu'il se contente de résoudre — sans quoi on croit tenu ce qui ne
+l'est pas.
+
+**Le cœur ne connaît que des moyens, jamais leurs noms.** Il en compte, en exige, et refuse le
+retrait du dernier : un compte qui n'a plus rien à présenter ne se dépanne depuis aucun écran.
 
 **Il ne couvre pas l'aspiration de masse.** Une identité légitime qui extrait cent mille dossiers
 ne relève pas de l'authentification. C'est du plafonnement de lecture, et c'est ailleurs.
 
 **Il ne décide pas qui a le droit de changer un réglage.** C'est de l'autorisation, et les deux
 paquets restent indépendants.
+
+## Les codes de secours
+
+Le filet : de quoi entrer quand tout le reste est perdu. Dix codes, chacun bon une fois, rendus
+une seule fois à l'écran — après quoi seule leur empreinte subsiste.
+
+```yaml
+authentication_policy:
+    backup_codes:
+        enabled: true
+        layout: 'base.html.twig'   # votre cadre ; absent, le paquet en fournit un nu
+```
+
+```yaml
+# config/routes.yaml
+authentication_policy:
+    resource: '@AuthenticationPolicyBundle/config/routes.php'
+```
+
+Rien d'autre : la table se crée au premier usage, l'écran est monté, et le retrait de la série
+est refusé tant qu'elle est le dernier moyen d'entrer. Pour ranger les codes ailleurs, nommez
+votre service dans `store` ; pour tenir la table vous-même, coupez `auto_setup`.
 
 ## Installation
 
