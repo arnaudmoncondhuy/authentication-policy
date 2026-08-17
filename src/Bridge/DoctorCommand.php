@@ -9,6 +9,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
+use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -58,6 +59,8 @@ final class DoctorCommand extends Command
         private readonly array $firewalls = [],
         private readonly array $mechanisms = [],
         private readonly bool $autoSetup = true,
+        private readonly ?ProofOfIdentity $judge = null,
+        private readonly int $freshness = 0,
     ) {
         parent::__construct();
     }
@@ -70,6 +73,7 @@ final class DoctorCommand extends Command
         $this->reportTheMechanisms($console);
         $this->reportTheLock($console);
         $this->reportTheStores($console);
+        $this->reportTheProofBridge($console);
         $this->reportWhoEnforces($console);
 
         return $this->reportHardenedDefaults($console);
@@ -137,6 +141,38 @@ final class DoctorCommand extends Command
                 ],
             ],
         );
+    }
+
+    /**
+     * Le pont vers le paquet d'autorisation : est-il monté, et à quelles conditions.
+     *
+     * N'échoue jamais. Ce qu'il rapporte n'est pas une faute mais une chose qu'aucune des deux
+     * installations ne peut voir seule — le paquet d'à côté sait qu'un droit exige une preuve,
+     * celui-ci sait s'il peut la donner, et personne ne réunit les deux.
+     */
+    private function reportTheProofBridge(SymfonyStyle $console): void
+    {
+        $console->section('Les actes qui redemandent l\'identité');
+
+        if (null === $this->judge) {
+            $console->writeln('Aucun : le paquet d\'autorisation n\'est pas là, ou aucun mécanisme n\'est allumé.');
+            $console->writeln('Un droit qui exigerait une preuve arrêterait alors la compilation, de son côté.');
+
+            return;
+        }
+
+        $console->writeln(\sprintf('Ce paquet répond au contrat %s.', ProofOfIdentity::class));
+        $console->writeln(\sprintf('Une preuve reste récente %d secondes, puis se redemande.', $this->freshness));
+
+        if (null === $this->enrollmentPath) {
+            $console->writeln('');
+            $console->writeln('⚠ Aucun chemin d\'enrôlement : un compte sans moyen devant un acte qui en exige un');
+            $console->writeln('  serait renvoyé à la racine, sans savoir quoi faire. Poser `enrollment_path`.');
+
+            return;
+        }
+
+        $console->writeln(\sprintf('Un compte sans moyen est renvoyé vers %s, un compte équipé vers l\'écran de redemande.', $this->enrollmentPath));
     }
 
     private function reportWhoEnforces(SymfonyStyle $console): void

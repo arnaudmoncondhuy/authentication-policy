@@ -67,3 +67,11 @@ factor.totp.state: En place
 
 factor.security_key: Clés de sécurité
 factor.security_key.state: '%count% clés posées'
+
+# L'écran qui redemande un moyen devant un acte qui l'exige.
+'Confirmez que c’est bien vous': Confirmez que c’est bien vous
+'Ce compte n’a aucun moyen à présenter.': Ce compte n’a aucun moyen à présenter.
+'Ce n’est pas la bonne réponse.': Ce n’est pas la bonne réponse.
+'reprove.totp': Recopiez le code affiché par votre application.
+'reprove.backup_codes': Utilisez un de vos codes de secours.
+'reprove.security_key': Approchez votre clé, ou confirmez sur cet appareil.

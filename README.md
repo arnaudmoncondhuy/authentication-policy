@@ -134,6 +134,43 @@ aux migrations du projet, et `doctor` dit ce qui manque.
         schema_filter: '~^(?!authentication_)~'
 ```
 
+## Redemander l'identité devant un acte
+
+Le verrou protège l'entrée : il exige qu'un moyen soit posé, une fois. Il ne protège pas le
+geste — la session laissée ouverte, le cookie dérobé sont déjà passés.
+
+Installé à côté de `arnaudmoncondhuy/authorization`, ce paquet devient ce qui **juge** une
+exigence posée sur une action :
+
+```php
+#[RequiresPermission(SecretPermission::Read,   proof: Proof::Strong)]
+#[RequiresPermission(SecretPermission::Reveal, proof: Proof::Recent)]
+final readonly class RevealSecretUseCase implements UseCase
+```
+
+| Niveau | Ce que ce paquet vérifie |
+|---|---|
+| `Strong` | le compte a un moyen posé — donc l'a présenté pour ouvrir la session |
+| `Recent` | il l'a présenté depuis moins de `proof.freshness` secondes, quinze minutes par défaut |
+
+Le refus n'est pas un 403 mais un détour : un compte sans moyen part vers `enrollment_path`,
+un compte équipé vers `/securite/confirmation`, qui redemande un moyen sans le faire ressortir
+de sa session. On revient ensuite d'où l'on venait — les lectures seulement : un envoi de
+formulaire ne se rejoue pas à l'insu de qui ne l'a pas confirmé.
+
+**Hors du périmètre, rien n'est exigé.** Une machine ne posera jamais de second facteur : lui
+opposer un détour la mettrait dehors sans porte. Une action réservée aux personnes se ferme par
+un droit, qui sait le faire.
+
+Le pont n'est monté qu'avec un mécanisme allumé. Sans lui, ce paquet ne pourrait répondre que
+non, et l'acte deviendrait inatteignable par tout le monde : `authorization` refuse alors de
+compiler, et son message nomme la cause.
+
+```yaml
+    proof:
+        freshness: 900
+```
+
 ## Un écran, tous les moyens
 
 `/securite` montre ce qui protège le compte et ce qui lui manque. Aucun mécanisme n'y est nommé :
@@ -166,7 +203,9 @@ change.
 Selon ce qu'on allume : `scheb/2fa-bundle` (dès qu'un mécanisme est allumé),
 `spomky-labs/otphp` (code à six chiffres), `web-auth/webauthn-lib` (clés), `doctrine/dbal` (le
 rangement du paquet), `endroid/qr-code` (le QR code plutôt que le secret en toutes lettres),
-`symfony/stimulus-bundle` (le comportement des clés, qui arrive alors sans une ligne à écrire).
+`symfony/stimulus-bundle` (le comportement des clés, qui arrive alors sans une ligne à écrire),
+`arnaudmoncondhuy/authorization` (pour qu'une action puisse exiger que l'identité soit prouvée,
+et la redemander avant de l'accomplir).
 
 ## Les deux commandes
 
@@ -174,7 +213,7 @@ rangement du paquet), `endroid/qr-code` (le QR code plutôt que le secret en tou
 telle qu'un rôle la subit.
 
 `authentication-policy:doctor` examine l'installation : le périmètre, les mécanismes allumés, le
-verrou, les stockages, et les durcissements natifs absents. Elle **échoue** plutôt que d'afficher
+verrou, les stockages, le pont vers l'autorisation, et les durcissements natifs absents. Elle **échoue** plutôt que d'afficher
 — une routine qualité ne peut s'appuyer que sur un code de sortie.
 
 ## Les réglages

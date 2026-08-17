@@ -31,6 +31,7 @@ return static function (ContainerConfigurator $container): void {
                 param(Parameter::MECHANISM.'.backup_codes.length'),
             ])
             ->tag('authentication_policy.factor')
+            ->tag('authentication_policy.challenge')
             ->public()
 
         ->alias(BackupCodeStore::class, Parameter::STORE.'.backup_codes')

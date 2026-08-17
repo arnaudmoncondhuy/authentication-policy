@@ -33,6 +33,7 @@ return static function (ContainerConfigurator $container): void {
                 param(Parameter::MECHANISM.'.totp.leeway'),
             ])
             ->tag('authentication_policy.factor')
+            ->tag('authentication_policy.challenge')
             ->public()
 
         ->alias(TotpSecrets::class, Parameter::STORE.'.totp')

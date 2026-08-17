@@ -7,6 +7,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ExitDoor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\MappedFirewall;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SessionLifetimeListener;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SystemClock;
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
 use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use ArnaudMoncondhuy\AuthenticationPolicy\PolicyResolver;
@@ -46,6 +47,17 @@ return static function (ContainerConfigurator $container): void {
         // sortie déclarée : le bouton disparaît alors, au lieu de mener nulle part.
         ->set(ExitDoor::class)
             ->args([service('security.logout_url_generator')->nullOnInvalid()])
+
+        // Qui règle sa sécurité, et le pare-feu dont il relève. Les deux questions vont
+        // ensemble : les séparer laisserait un compte de machine régler des moyens qu'il ne
+        // posera jamais. Déclaré ici et non avec les écrans — le pont en a besoin dans une
+        // application qui ne rend aucune page.
+        ->set(Visitor::class)
+            ->args([
+                service(TokenStorageInterface::class),
+                service(Perimeter::class),
+                service(Firewall::class)->nullOnInvalid(),
+            ])
 
         // Ce qu'un écran de profil injecte : la politique appliquée à qui est connecté.
         ->set(CurrentDecisions::class)

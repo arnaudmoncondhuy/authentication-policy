@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\Factor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Challenge;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
 
@@ -18,7 +18,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
  * Les poser une seconde fois périme les précédents. C'est voulu : une série imprimée dont on ne
  * sait plus si elle est encore valable ne rassure personne.
  */
-final readonly class BackupCodes implements Factor
+final readonly class BackupCodes implements Challenge
 {
     public const string NAME = 'backup_codes';
 
@@ -105,6 +105,23 @@ final readonly class BackupCodes implements Factor
         $this->store->forget($userIdentifier, $found);
 
         return true;
+    }
+
+    /** Rien à présenter : le code est sur le papier qu'on a gardé, et un champ suffit. */
+    public function question(string $userIdentifier): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Redemander consomme le code, comme à l'entrée.
+     *
+     * C'est voulu : un code qui servirait deux fois cesserait d'être à usage unique du seul
+     * fait qu'on le présente ailleurs qu'à la connexion.
+     */
+    public function accepts(string $userIdentifier, string $answer): bool
+    {
+        return $this->consume($userIdentifier, $answer);
     }
 
     /**

@@ -6,10 +6,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\SecurityScreenController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\Visitor;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\Parameter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
-use ArnaudMoncondhuy\AuthenticationPolicy\Firewall;
-use ArnaudMoncondhuy\AuthenticationPolicy\Perimeter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Environment;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -23,16 +20,6 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
  */
 return static function (ContainerConfigurator $container): void {
     $container->services()
-        // Qui règle sa sécurité, et le pare-feu dont il relève. Partagé par tous les écrans :
-        // vérifier l'un sans l'autre laisserait un compte de machine régler des moyens qu'il ne
-        // posera jamais.
-        ->set(Visitor::class)
-            ->args([
-                service(TokenStorageInterface::class),
-                service(Perimeter::class),
-                service(Firewall::class)->nullOnInvalid(),
-            ])
-
         ->set(SecurityScreenController::class)
             ->args([
                 service(Factors::class),

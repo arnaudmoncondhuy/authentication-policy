@@ -10,6 +10,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Storage\Oblivion;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
+use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -48,6 +49,11 @@ return static function (ContainerConfigurator $container): void {
                 param(Parameter::FIREWALLS),
                 param(Parameter::MECHANISMS),
                 param(Parameter::AUTO_SETUP),
+                // Nul quand le pont n'est pas monté, et c'est justement ce que la commande
+                // rapporte : le recevoir autrement la rendrait impossible à construire là où
+                // elle a le plus à dire.
+                service(ProofOfIdentity::class)->nullOnInvalid(),
+                param(Parameter::PROOF_FRESHNESS),
             ])
             ->tag('console.command')
     ;

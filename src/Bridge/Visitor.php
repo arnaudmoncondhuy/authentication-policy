@@ -50,4 +50,24 @@ final readonly class Visitor
     {
         return array_values($this->tokens->getToken()?->getRoleNames() ?? []);
     }
+
+    /**
+     * La requête relève-t-elle d'un pare-feu confié à ce paquet.
+     *
+     * La même question que {@see self::identifier()} pose en premier, sans refuser : ce qui
+     * répond à un autre paquet doit pouvoir dire « ce n'est pas mon affaire » plutôt que de
+     * fermer une porte dont il n'a pas la charge.
+     */
+    public function isGoverned(): bool
+    {
+        return null !== $this->firewall && $this->perimeter->covers($this->firewall->name());
+    }
+
+    /** L'identifiant, ou nul quand personne n'est connecté. */
+    public function identifierOrNull(): ?string
+    {
+        $user = $this->tokens->getToken()?->getUserIdentifier();
+
+        return null === $user || '' === $user ? null : $user;
+    }
 }

@@ -15,6 +15,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\RefuseMechanismWit
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\RefusePerimeterlessPolicyPass;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\RefuseUnboundedDurationPass;
 use ArnaudMoncondhuy\AuthenticationPolicy\DependencyInjection\RefuseUnprotectedRemovalPass;
+use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Doctrine\DBAL\Connection;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Provider\TwoFactorProviderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -158,6 +159,17 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('proof')
+                    ->info('Ce qu\'exige un acte qui redemande l\'identité, quand un paquet d\'autorisation en pose.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('freshness')
+                            ->defaultValue(900)
+                            ->min(1)
+                            ->info('Au-delà de combien de secondes une preuve cesse d\'être récente et se redemande.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->append($this->mechanisms())
                 ->append($this->templates())
                 ->append($this->routes())
@@ -205,6 +217,10 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         $container->setParameter(Parameter::AUTO_SETUP, $storage['auto_setup']);
         $container->setParameter(Parameter::MECHANISMS, $mechanisms);
         $container->setParameter(Parameter::ROUTES, $config['routes']);
+
+        /** @var array{freshness: int} $proof */
+        $proof = $config['proof'];
+        $container->setParameter(Parameter::PROOF_FRESHNESS, $proof['freshness']);
 
         foreach ($templates as $screen => $template) {
             $container->setParameter(Parameter::TEMPLATE.'.'.$screen, $template);
@@ -308,6 +324,18 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         }
 
         $container->setParameter(Parameter::LOGIN_STEP, $enabled && $step);
+
+        // Le pont vers le paquet d'autorisation. Il ne se monte qu'avec un mécanisme allumé :
+        // sans moyen à présenter, ce juge ne pourrait répondre que non, et une action protégée
+        // deviendrait inatteignable par tout le monde. Mieux vaut alors qu'il n'existe pas —
+        // le paquet voisin refuse de compiler, et son message nomme la cause.
+        if ($secured && $enabled && interface_exists(ProofOfIdentity::class)) {
+            $configurator->import('../config/proof.php');
+
+            if ($screens) {
+                $configurator->import('../config/reprove.php');
+            }
+        }
 
         if ($secured) {
             $configurator->import('../config/routes.php');
@@ -468,6 +496,11 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                 ->end()
         ;
 
+        $children->scalarNode('reprove')
+            ->defaultValue('@AuthenticationPolicy/reprove.html.twig')
+            ->info('L\'écran qui redemande un moyen devant un acte qui l\'exige.')
+        ->end();
+
         foreach (['security', 'totp', 'security_key', 'backup_codes'] as $screen) {
             $children->scalarNode($screen)->defaultValue(\sprintf('@AuthenticationPolicy/%s.html.twig', $screen))->end();
             $children->scalarNode('login_'.$screen)->defaultValue(\sprintf('@AuthenticationPolicy/login/%s.html.twig', $screen))->end();
@@ -485,6 +518,7 @@ final class AuthenticationPolicyBundle extends AbstractBundle
 
         $paths = [
             'security' => '',
+            'reprove' => '/confirmation',
             'totp' => '/application',
             'security_key' => '/cles',
             'backup_codes' => '/codes-de-secours',

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\Totp;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\Factor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Challenge;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
 use OTPHP\TOTP as Generator;
@@ -21,7 +21,7 @@ use Psr\Clock\ClockInterface;
  * prouve que l'application d'authentification ait lu le bon QR code — et compter ce moyen
  * fermerait le verrou sur quelqu'un qui ne peut produire aucun code.
  */
-final readonly class Totp implements Factor
+final readonly class Totp implements Challenge
 {
     public const string NAME = 'totp';
 
@@ -115,7 +115,7 @@ final readonly class Totp implements Factor
     {
         $secret = $this->secrets->secretOf($userIdentifier);
 
-        if (null === $secret || !$this->accepts($secret, $code)) {
+        if (null === $secret || !$this->matches($secret, $code)) {
             return false;
         }
 
@@ -124,12 +124,26 @@ final readonly class Totp implements Factor
         return true;
     }
 
+    /**
+     * Rien à présenter : le code se lit sur l'appareil, et un champ de saisie suffit.
+     */
+    public function question(string $userIdentifier): ?string
+    {
+        return null;
+    }
+
+    /** Redemander, c'est la même vérification qu'à l'entrée : un code, et un secret confirmé. */
+    public function accepts(string $userIdentifier, string $answer): bool
+    {
+        return $this->verifyFor($userIdentifier, $answer);
+    }
+
     /** Le contrôle de la connexion : seul un secret confirmé ouvre. */
     public function verifyFor(string $userIdentifier, string $code): bool
     {
         $secret = $this->secrets->confirmedSecretOf($userIdentifier);
 
-        return null !== $secret && $this->accepts($secret, $code);
+        return null !== $secret && $this->matches($secret, $code);
     }
 
     /** @throws LastFactorRemoval si le compte n'a rien d'autre pour se connecter */
@@ -145,7 +159,7 @@ final readonly class Totp implements Factor
      * juste sans rien protéger.
      */
     /** @param non-empty-string $secret */
-    private function accepts(string $secret, string $code): bool
+    private function matches(string $secret, string $code): bool
     {
         $typed = (string) preg_replace('/\s+/', '', $code);
 

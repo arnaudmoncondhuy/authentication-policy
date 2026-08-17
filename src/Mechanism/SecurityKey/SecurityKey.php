@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\SecurityKey;
 
-use ArnaudMoncondhuy\AuthenticationPolicy\Factor;
+use ArnaudMoncondhuy\AuthenticationPolicy\Challenge;
 use ArnaudMoncondhuy\AuthenticationPolicy\Factors;
 use ArnaudMoncondhuy\AuthenticationPolicy\LastFactorRemoval;
 use Cose\Algorithms;
 use Psr\Clock\ClockInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -35,7 +36,7 @@ use Webauthn\PublicKeyCredentialUserEntity;
  * Le défi vit dans la session le temps d'un aller-retour, et pas au-delà : une réponse arrivée
  * sans que rien n'ait été demandé ne prouve rien.
  */
-final readonly class SecurityKey implements Factor
+final readonly class SecurityKey implements Challenge
 {
     public const string NAME = 'security_key';
 
@@ -49,6 +50,7 @@ final readonly class SecurityKey implements Factor
         private AuthenticatorAttestationResponseValidator $attestations,
         private AuthenticatorAssertionResponseValidator $assertions,
         private ClockInterface $clock,
+        private RequestStack $requests,
         private string $relyingPartyName = '',
         private ?string $relyingPartyId = null,
         private int $timeout = 60000,
@@ -220,6 +222,33 @@ final readonly class SecurityKey implements Factor
         $this->keys->noteUsage($stored, Record::encode($record), $this->clock->now()->getTimestamp());
 
         return true;
+    }
+
+    /**
+     * Le défi, pour l'écran qui redemande. Le même qu'à la connexion : c'est la même clé qui
+     * répond, et le même aller-retour.
+     */
+    public function question(string $userIdentifier): ?string
+    {
+        $session = $this->requests->getCurrentRequest()?->getSession();
+
+        return null === $session ? null : $this->beginChallenge($userIdentifier, $session);
+    }
+
+    /**
+     * Sans requête en cours, rien ne se vérifie : ni le défi rangé en session, ni le domaine
+     * auquel la signature se rapporte. Refuser est le seul comportement qui ne suppose pas ce
+     * qu'on ne sait pas.
+     */
+    public function accepts(string $userIdentifier, string $answer): bool
+    {
+        $request = $this->requests->getCurrentRequest();
+
+        if (null === $request) {
+            return false;
+        }
+
+        return $this->verify($userIdentifier, $answer, $request->getSession(), $request->getHost());
     }
 
     /** @throws LastFactorRemoval si le compte n'a rien d'autre pour se connecter */

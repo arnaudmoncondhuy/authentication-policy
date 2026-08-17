@@ -8,6 +8,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\SecurityKey\SecurityKey;
 use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\SecurityKey\SecurityKeys;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Webauthn\AttestationStatement\AttestationStatementSupportManager;
 use Webauthn\AuthenticatorAssertionResponseValidator;
 use Webauthn\AuthenticatorAttestationResponseValidator;
@@ -62,6 +63,7 @@ return static function (ContainerConfigurator $container): void {
                 service(AuthenticatorAttestationResponseValidator::class),
                 service(AuthenticatorAssertionResponseValidator::class),
                 service(ClockInterface::class),
+                service(RequestStack::class),
                 param(Parameter::MECHANISM.'.security_key.relying_party_name'),
                 param(Parameter::MECHANISM.'.security_key.relying_party_id'),
                 param(Parameter::MECHANISM.'.security_key.timeout'),
@@ -70,6 +72,7 @@ return static function (ContainerConfigurator $container): void {
                 param(Parameter::MECHANISM.'.security_key.label_max_length'),
             ])
             ->tag('authentication_policy.factor')
+            ->tag('authentication_policy.challenge')
             ->public()
 
         ->alias(SecurityKeys::class, Parameter::STORE.'.security_key')

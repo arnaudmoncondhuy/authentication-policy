@@ -2,6 +2,13 @@
     "name": "arnaudmoncondhuy/authentication-policy",
     "description": "À quel point faut-il prouver que c'est bien soi. La politique se déclare une fois, le conteneur refuse de compiler ce qui la contournerait, et le verrou d'enrôlement est fermé par défaut.",
     "type": "symfony-bundle",
+    "repositories": [
+        {
+            "name": "authorization",
+            "type": "vcs",
+            "url": "https://github.com/arnaudmoncondhuy/authorization"
+        }
+    ],
     "license": "MIT",
     "keywords": [
         "symfony",
@@ -31,6 +38,7 @@
         "symfony/security-http": "^7.3 || ^8.1"
     },
     "require-dev": {
+        "arnaudmoncondhuy/authorization": "^0.14",
         "deptrac/deptrac": "^4.7",
         "doctrine/dbal": "^4.4",
         "endroid/qr-code": "^6.1",
@@ -61,7 +69,8 @@
         "web-auth/webauthn-lib": "Pour le mécanisme des clés de sécurité.",
         "endroid/qr-code": "Pour montrer le secret du code à six chiffres en QR code plutôt qu'en toutes lettres.",
         "doctrine/dbal": "Pour ranger ce que les mécanismes posent sans écrire leur stockage.",
-        "symfony/stimulus-bundle": "Pour que le comportement des clés de sécurité arrive sans une ligne dans l'application."
+        "symfony/stimulus-bundle": "Pour que le comportement des clés de sécurité arrive sans une ligne dans l'application.",
+        "arnaudmoncondhuy/authorization": "Pour qu'une action puisse exiger que l'identité soit prouvée, et redemander un moyen avant de l'accomplir."
     },
     "autoload": {
         "psr-4": {

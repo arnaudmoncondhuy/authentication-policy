@@ -1,0 +1,76 @@
+{#
+    L'écran qui redemande un moyen devant un acte qui l'exige.
+
+    Il ne nomme aucun mécanisme : il affiche ce que les moyens posés déclarent savoir
+    redemander, et passe leur question au navigateur sans la lire.
+
+    Il se remplace en entier depuis l'application : un fichier du même nom dans
+    `templates/bundles/AuthenticationPolicyBundle/` prend sa place.
+#}
+{% extends layout ?? '@AuthenticationPolicy/layout.html.twig' %}
+
+{% block title %}{{ 'Confirmez que c’est bien vous'|trans({}, 'authentication_policy') }}{% endblock %}
+
+{% block body %}
+<div class="app-stack">
+    <h1>{{ 'Confirmez que c’est bien vous'|trans({}, 'authentication_policy') }}</h1>
+
+    {% if moyen is null %}
+        {# Le cas où l'exigence a été posée sur un compte nu : le dire, plutôt que d'afficher
+           un formulaire que rien ne pourrait satisfaire. #}
+        <p class="app-alert" data-tone="warning" role="alert">
+            {{ 'Ce compte n’a aucun moyen à présenter.'|trans({}, 'authentication_policy') }}
+        </p>
+    {% else %}
+        {% if erreur %}
+            <p class="app-alert" data-tone="danger" role="alert">
+                {{ 'Ce n’est pas la bonne réponse.'|trans({}, 'authentication_policy') }}
+            </p>
+        {% endif %}
+
+        <div class="app-card app-stack">
+            <p>{{ ('reprove.' ~ moyen)|trans({}, 'authentication_policy') }}</p>
+
+            {% if question %}
+                {# Une clé de sécurité : le navigateur signe, et le champ reçoit sa réponse. #}
+                <form method="post"
+                      data-controller="authentication-policy-security-key"
+                      data-authentication-policy-security-key-options-value="{{ question }}"
+                      data-authentication-policy-security-key-mode-value="get"
+                      data-action="submit->authentication-policy-security-key#sign"
+                      data-security-key-unsupported="{{ 'Ce navigateur ne sait pas parler aux clés de sécurité.'|trans({}, 'authentication_policy') }}"
+                      data-security-key-refused="{{ 'La clé n’a pas répondu.'|trans({}, 'authentication_policy') }}"
+                      class="app-stack">
+                    <p hidden data-authentication-policy-security-key-target="error" role="alert"></p>
+
+                    <input type="hidden" name="reponse" data-authentication-policy-security-key-target="answer">
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+
+                    <button type="submit" class="app-btn" data-tone="accent" data-block>
+                        {{ 'Confirmer'|trans({}, 'authentication_policy') }}
+                    </button>
+                </form>
+            {% else %}
+                <form method="post" class="app-stack">
+                    <div class="app-field">
+                        <label class="app-field-label" for="reponse">{{ 'Votre code'|trans({}, 'authentication_policy') }}</label>
+                        <input type="text" id="reponse" name="reponse" autocomplete="one-time-code" autofocus required>
+                    </div>
+
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+
+                    <button type="submit" class="app-btn" data-tone="accent" data-block>
+                        {{ 'Confirmer'|trans({}, 'authentication_policy') }}
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+
+        {% for autre in autres %}
+            <a href="{{ path('authentication_policy_reprove', {moyen: autre}) }}">
+                {{ ('factor.' ~ autre)|trans({}, 'authentication_policy') }}
+            </a>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\AuthenticationPolicyBundle;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\FrozenClock;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\EnrollmentController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\GuardedController;
+use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\Web\ProofController;
 use Doctrine\DBAL\DriverManager;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -174,12 +175,25 @@ final class PolicyTestKernel extends Kernel
         $container->register(EnrollmentController::class)
             ->setPublic(true)
             ->addTag('controller.service_arguments');
+
+        // La page qui interroge le juge du pont. Elle n'existe que si un mécanisme est allumé :
+        // sans lui, le juge n'est pas déclaré, et la page ne se construirait pas.
+        if ($this->anyMechanismEnabled()) {
+            $container->register(ProofController::class)
+                ->setAutowired(true)
+                ->setPublic(true)
+                ->addTag('controller.service_arguments');
+        }
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->add('page', '/une-page')->controller(GuardedController::class);
         $routes->add('enrolement', '/enrolement')->controller(EnrollmentController::class);
+
+        if ($this->anyMechanismEnabled()) {
+            $routes->add('preuve', '/preuve')->controller(ProofController::class);
+        }
 
         if ($this->secondFirewall) {
             $routes->add('machine', '/api/etat')->controller(GuardedController::class);

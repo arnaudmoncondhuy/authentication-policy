@@ -89,6 +89,14 @@ final class Parameter
     /** L'étape de second facteur est-elle montée : un mécanisme allumé, et de quoi la poser. */
     public const string LOGIN_STEP = 'authentication_policy.login_step';
 
+    /**
+     * Au-delà de combien de secondes une preuve d'identité cesse d'être récente.
+     *
+     * Ne concerne que les actes qui l'exigent : une session ordinaire ne redemande rien, et
+     * c'est ce qui permet de la choisir courte sans rendre le travail pénible.
+     */
+    public const string PROOF_FRESHNESS = 'authentication_policy.proof.freshness';
+
     private function __construct()
     {
     }
