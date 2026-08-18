@@ -164,6 +164,13 @@ final class DoctorCommand extends Command
         $console->writeln(\sprintf('Ce paquet répond au contrat %s.', ProofOfIdentity::class));
         $console->writeln(\sprintf('Une preuve reste récente %d secondes, puis se redemande.', $this->freshness));
 
+        $console->writeln('');
+        $console->writeln('Hors des pare-feux gouvernés, ce juge refuse toute exigence de preuve : un droit');
+        $console->writeln('à preuve atteint par une console, une file ou l\'entrée d\'une machine y sera');
+        $console->writeln('toujours refusé — ce qu\'on ne peut établir ne s\'accorde pas. C\'est voulu, mais');
+        $console->writeln('un tel droit n\'a alors rien à faire sur ces portes, et le silence d\'avant');
+        $console->writeln('accordait là ce qu\'il refusait ailleurs.');
+
         if (null === $this->enrollmentPath) {
             $console->writeln('');
             $console->writeln('⚠ Aucun chemin d\'enrôlement : un compte sans moyen devant un acte qui en exige un');
