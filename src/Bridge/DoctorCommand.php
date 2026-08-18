@@ -9,6 +9,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Setting;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
+use ArnaudMoncondhuy\Authorization\PermissionCatalog;
 use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -61,6 +62,9 @@ final class DoctorCommand extends Command
         private readonly bool $autoSetup = true,
         private readonly ?ProofOfIdentity $judge = null,
         private readonly int $freshness = 0,
+        private readonly ?PermissionCatalog $catalog = null,
+        /** @var list<string> tous les pare-feux de l'application, gouvernés ou non */
+        private readonly array $allFirewalls = [],
     ) {
         parent::__construct();
     }
@@ -86,6 +90,39 @@ final class DoctorCommand extends Command
         $console->writeln([] === $this->firewalls
             ? 'Aucun pare-feu confié : ce paquet ne gouverne rien.'
             : 'Pare-feux gouvernés : '.implode(', ', $this->firewalls).'. Tout le reste lui échappe, par construction.');
+
+        $this->warnAboutRightsOutOfReach($console);
+    }
+
+    /**
+     * Ce qui échappe au juge n'est pas neutre dès qu'un droit exige une preuve.
+     *
+     * Un droit qui réclame une identité prouvée ne peut être jugé que là où ce paquet voit la
+     * session. Ailleurs — une file, une console, un pare-feu machine — il n'a rien à regarder, et
+     * refuse donc. Le droit y devient inatteignable, silencieusement : le verbe se refuse sans
+     * qu'aucune configuration ne dise pourquoi. C'est ce que cette alerte nomme.
+     */
+    private function warnAboutRightsOutOfReach(SymfonyStyle $console): void
+    {
+        $rights = $this->catalog?->proofs() ?? [];
+
+        if ([] === $rights) {
+            return;
+        }
+
+        $escaping = array_values(array_diff($this->allFirewalls, $this->firewalls));
+
+        if ([] === $escaping) {
+            return;
+        }
+
+        $console->newLine();
+        $console->warning(\sprintf(
+            "%d droit(s) exigent une identité prouvée : %s.\nOr %s échappe(nt) à ce paquet, qui n'y voit aucune session : ces droits s'y refusent tous, quoi qu'il arrive.\nSoit ces portes n'ont pas à les atteindre — et il n'y a rien à faire — soit elles doivent être gouvernées.",
+            \count($rights),
+            implode(', ', array_keys($rights)),
+            implode(', ', $escaping),
+        ));
     }
 
     private function reportTheMechanisms(SymfonyStyle $console): void

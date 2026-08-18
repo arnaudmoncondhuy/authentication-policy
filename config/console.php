@@ -10,6 +10,7 @@ use ArnaudMoncondhuy\AuthenticationPolicy\Policy;
 use ArnaudMoncondhuy\AuthenticationPolicy\RolePolicies;
 use ArnaudMoncondhuy\AuthenticationPolicy\Storage\Oblivion;
 use ArnaudMoncondhuy\AuthenticationPolicy\UserPreferences;
+use ArnaudMoncondhuy\Authorization\PermissionCatalog;
 use ArnaudMoncondhuy\Authorization\ProofOfIdentity;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -54,6 +55,11 @@ return static function (ContainerConfigurator $container): void {
                 // elle a le plus à dire.
                 service(ProofOfIdentity::class)->nullOnInvalid(),
                 param(Parameter::PROOF_FRESHNESS),
+                // L'inventaire des droits, quand le paquet qui les tient est là : c'est lui qui
+                // sait lesquels exigent une preuve.
+                service(PermissionCatalog::class)->nullOnInvalid(),
+                // Tous les pare-feux de l'application, pour dire lesquels échappent au juge.
+                param('security.firewalls'),
             ])
             ->tag('console.command')
     ;
