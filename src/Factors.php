@@ -104,7 +104,16 @@ final readonly class Factors
             return;
         }
 
-        if ($this->countFor($userIdentifier) - max(0, $howMany) <= 0) {
+        $retires = max(0, $howMany);
+
+        // Ne rien retirer n'est pas retirer le dernier. Un compte qui n'a aucun moyen n'a rien à
+        // protéger : lui opposer ce refus rend impossible de nettoyer une identité vide, et fait
+        // échouer un geste qui n'aurait rien changé.
+        if (0 === $retires) {
+            return;
+        }
+
+        if ($this->countFor($userIdentifier) - $retires <= 0) {
             throw LastFactorRemoval::of($factorName);
         }
     }

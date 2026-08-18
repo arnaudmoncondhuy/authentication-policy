@@ -40,6 +40,22 @@ final class FactorsTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    /**
+     * Ne rien retirer n'est pas retirer le dernier.
+     *
+     * Un compte sans aucun moyen n'a rien à protéger. Lui opposer le refus du dernier moyen
+     * ferait échouer un geste qui n'aurait rien changé, et rendrait impossible de nettoyer une
+     * identité vide — c'est ce qui se produisait avant.
+     */
+    public function testNeRienRetirerDUnCompteVideEstAutorise(): void
+    {
+        $factors = new Factors([self::factor('totp', 0)], true);
+
+        $factors->requireRemovable('claude', 'totp', 0);
+
+        $this->expectNotToPerformAssertions();
+    }
+
     public function testRetirerLeDernierMoyenEstRefuse(): void
     {
         $factors = new Factors([self::factor('backup_codes', 8)], true);
