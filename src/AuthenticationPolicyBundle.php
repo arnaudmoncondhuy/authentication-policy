@@ -23,6 +23,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 
 /**
  * Le point de montage du paquet.
@@ -170,6 +171,21 @@ final class AuthenticationPolicyBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('attempts')
+                    ->info('Combien de fois on a le droit de se tromper devant un moyen. Le pare-feu ne limite que le formulaire de connexion ; ces écrans-là acceptent un secret eux aussi.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('max')
+                            ->defaultValue(5)
+                            ->min(1)
+                            ->info('Nombre de réponses fausses tolérées avant que le compte ne soit écarté pour un temps. Une bonne réponse remet le compteur à zéro.')
+                        ->end()
+                        ->scalarNode('interval')
+                            ->defaultValue('15 minutes')
+                            ->info('Sur quelle durée ces essais se comptent.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->append($this->mechanisms())
                 ->append($this->templates())
                 ->append($this->routes())
@@ -221,6 +237,11 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         /** @var array{freshness: int} $proof */
         $proof = $config['proof'];
         $container->setParameter(Parameter::PROOF_FRESHNESS, $proof['freshness']);
+
+        /** @var array{max: int, interval: string} $attempts */
+        $attempts = $config['attempts'];
+        $container->setParameter(Parameter::ATTEMPTS_MAX, $attempts['max']);
+        $container->setParameter(Parameter::ATTEMPTS_INTERVAL, $attempts['interval']);
 
         foreach ($templates as $screen => $template) {
             $container->setParameter(Parameter::TEMPLATE.'.'.$screen, $template);
@@ -329,6 +350,12 @@ final class AuthenticationPolicyBundle extends AbstractBundle
         // sans moyen à présenter, ce juge ne pourrait répondre que non, et une action protégée
         // deviendrait inatteignable par tout le monde. Mieux vaut alors qu'il n'existe pas —
         // le paquet voisin refuse de compiler, et son message nomme la cause.
+        // Le compte des réponses fausses. Il vaut dès qu'un écran accepte un secret, donc dès
+        // qu'un mécanisme est allumé — indépendamment du paquet d'autorisation.
+        if ($enabled && class_exists(RateLimiterFactory::class)) {
+            $configurator->import('../config/attempts.php');
+        }
+
         if ($secured && $enabled && interface_exists(ProofOfIdentity::class)) {
             $configurator->import('../config/proof.php');
 

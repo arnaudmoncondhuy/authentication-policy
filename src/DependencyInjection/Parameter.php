@@ -96,6 +96,8 @@ final class Parameter
      * c'est ce qui permet de la choisir courte sans rendre le travail pénible.
      */
     public const string PROOF_FRESHNESS = 'authentication_policy.proof.freshness';
+    public const string ATTEMPTS_MAX = 'authentication_policy.attempts.max';
+    public const string ATTEMPTS_INTERVAL = 'authentication_policy.attempts.interval';
 
     private function __construct()
     {

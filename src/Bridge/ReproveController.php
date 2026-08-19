@@ -36,6 +36,8 @@ final readonly class ReproveController
         private iterable $challenges,
         private Visitor $visitor,
         private ProvenMoment $moment,
+        // Absent quand aucun mécanisme n'est allumé : il n'y aurait alors rien à compter.
+        private ?AttemptLimiter $attempts,
         private ReturnPath $returnPath,
         private Environment $twig,
         private ?CsrfTokenManagerInterface $csrf,
@@ -64,7 +66,15 @@ final readonly class ReproveController
 
         $this->requireCsrf($request);
 
+        // Un jeton par essai, pris avant de juger : ce qui n'est pas permis n'est pas jugé.
+        $patience = $this->attempts?->attempt($user);
+
+        if (null !== $patience) {
+            return $this->render($user, $chosen, $posed, 'throttled', $patience);
+        }
+
         if ($chosen->accepts($user, (string) $request->request->get('reponse'))) {
+            $this->attempts?->forget($user);
             $this->moment->record();
 
             return new RedirectResponse($this->returnPath->take());
@@ -75,13 +85,16 @@ final readonly class ReproveController
 
     /**
      * @param list<Challenge> $posed
-     * @param ?string         $error `refused` quand la réponse était fausse
+     * @param ?string         $error `refused` quand la réponse était fausse, `throttled` quand
+     *                               il y en a eu trop
      */
-    private function render(string $user, ?Challenge $chosen, array $posed, ?string $error): Response
+    private function render(string $user, ?Challenge $chosen, array $posed, ?string $error, int $patience = 0): Response
     {
         return new Response($this->twig->render($this->template, [
             'layout' => $this->layout,
             'moyen' => $chosen?->name(),
+            // En minutes : une attente en secondes se lit mal et invite à recompter.
+            'patience' => (int) ceil($patience / 60),
             // Redemandée à chaque affichage : une demande ne vaut qu'une fois, et la rejouer
             // serait précisément ce qu'elle empêche.
             'question' => $chosen?->question($user),

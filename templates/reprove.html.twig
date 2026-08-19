@@ -22,7 +22,11 @@
             {{ 'Ce compte n’a aucun moyen à présenter.'|trans({}, 'authentication_policy') }}
         </p>
     {% else %}
-        {% if erreur %}
+        {% if erreur == 'throttled' %}
+            <p class="app-alert" data-tone="danger" role="alert">
+                {{ 'Trop de réponses fausses. Réessayez dans %minutes% minute(s).'|trans({'%minutes%': patience}, 'authentication_policy') }}
+            </p>
+        {% elseif erreur %}
             <p class="app-alert" data-tone="danger" role="alert">
                 {{ 'Ce n’est pas la bonne réponse.'|trans({}, 'authentication_policy') }}
             </p>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\AttemptLimiter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ProvenMoment;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ReproveController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ReturnPath;
@@ -29,6 +30,7 @@ return static function (ContainerConfigurator $container): void {
                 tagged_iterator('authentication_policy.challenge'),
                 service(Visitor::class),
                 service(ProvenMoment::class),
+                service(AttemptLimiter::class)->nullOnInvalid(),
                 service(ReturnPath::class),
                 service(Environment::class),
                 service(CsrfTokenManagerInterface::class)->nullOnInvalid(),

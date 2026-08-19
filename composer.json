@@ -34,6 +34,7 @@
         "symfony/event-dispatcher": "^7.3 || ^8.1",
         "symfony/http-foundation": "^7.3 || ^8.1",
         "symfony/http-kernel": "^7.3 || ^8.1",
+        "symfony/rate-limiter": "^7.3 || ^8.1",
         "symfony/security-core": "^7.3 || ^8.1",
         "symfony/security-http": "^7.3 || ^8.1"
     },
@@ -54,7 +55,6 @@
         "symfony/clock": "^7.3 || ^8.1",
         "symfony/console": "^7.3 || ^8.1",
         "symfony/framework-bundle": "^7.3 || ^8.1",
-        "symfony/rate-limiter": "^7.3 || ^8.1",
         "symfony/routing": "^8.1",
         "symfony/runtime": "^7.3 || ^8.1",
         "symfony/security-bundle": "^7.3 || ^8.1",

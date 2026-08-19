@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ArnaudMoncondhuy\AuthenticationPolicy\Tests\Integration;
 
+use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\AttemptLimiter;
 use ArnaudMoncondhuy\AuthenticationPolicy\Bridge\ReproveController;
 use ArnaudMoncondhuy\AuthenticationPolicy\Mechanism\BackupCodes\BackupCodes;
 use ArnaudMoncondhuy\AuthenticationPolicy\Tests\Fixture\InMemoryBackupCodeStore;
@@ -127,6 +128,39 @@ final class ProofBridgeTest extends TestCase
         self::assertSame('strong=1 recent=1', $this->ask($kernel));
     }
 
+    /**
+     * Se tromper trop souvent ferme l'écran, même à la bonne réponse.
+     *
+     * C'est la porte qu'emprunte une session dérobée pour se refaire une fraîcheur : sans
+     * plafond, l'espace d'un code à six chiffres se couvre en parallélisant, et le détour ne
+     * retarde plus personne.
+     */
+    public function testTooManyWrongAnswersCloseTheScreen(): void
+    {
+        $kernel = $this->boot();
+        $codes = $this->pose($kernel);
+
+        for ($essai = 0; $essai < 6; ++$essai) {
+            $screen = $this->visit($kernel, '/securite/confirmation');
+            $this->send($kernel, [
+                '_token' => self::tokenOf((string) $screen->getContent()),
+                'reponse' => 'pas-le-bon',
+            ]);
+        }
+
+        $screen = $this->visit($kernel, '/securite/confirmation');
+        $answered = $this->send($kernel, [
+            '_token' => self::tokenOf((string) $screen->getContent()),
+            'reponse' => $codes[0],
+        ]);
+
+        self::assertSame(Response::HTTP_OK, $answered->getStatusCode());
+        self::assertStringContainsString('Trop de réponses fausses', (string) $answered->getContent());
+        // Rien n'a été présenté dans cette session : ni la fraîcheur ni le niveau fort ne sont
+        // acquis, et la bonne réponse n'a même pas été jugée.
+        self::assertSame('strong=0 recent=0', $this->ask($kernel));
+    }
+
     /** Une mauvaise réponse ne rend rien, et laisse l'écran ouvert. */
     public function testAWrongAnswerChangesNothing(): void
     {
@@ -197,6 +231,17 @@ final class ProofBridgeTest extends TestCase
             extra: [InMemoryBackupCodeStore::class],
         );
         $this->kernel->boot();
+
+        // Le compte des essais vit dans le cache de l'application, qui survit d'un cas à
+        // l'autre. Sans cette remise à zéro, le premier test à se tromper condamnerait les
+        // suivants — et l'échec ressemblerait à un défaut du code plutôt qu'à une fuite du banc
+        // d'essai.
+        // Absent quand aucun mécanisme n'est allumé : il n'y aurait alors rien à compter.
+        if ($this->kernel->getContainer()->has(AttemptLimiter::class)) {
+            $limiter = $this->kernel->getContainer()->get(AttemptLimiter::class);
+            \assert($limiter instanceof AttemptLimiter);
+            $limiter->forget('arnaud');
+        }
 
         return $this->kernel;
     }
